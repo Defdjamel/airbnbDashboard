@@ -248,7 +248,7 @@
       font-weight: 500;
       letter-spacing: .02em;
     }
-    .status-Confirmée, .status-Confirmed  { background: var(--confirm-bg); color: var(--confirm); }
+    .status-Confirmée, .status-Confirmed, .status-Réservé  { background: var(--confirm-bg); color: var(--confirm); }
     .status-En.attente, .status-Pending   { background: var(--pending-bg); color: var(--pending); }
     .status-Annulée, .status-Cancelled   { background: var(--cancelled-bg); color: var(--cancelled); }
     .status-Terminée, .status-Completed  { background: var(--done-bg); color: var(--done); }
@@ -331,7 +331,7 @@
 <div class="stats-bar">
   <div class="stats-inner">
     <div class="stat"><div class="stat-num" id="stat-total">—</div><div class="stat-label">Réservations</div></div>
-    <div class="stat"><div class="stat-num" id="stat-confirmed">—</div><div class="stat-label">Confirmées</div></div>
+    <div class="stat"><div class="stat-num" id="stat-confirmed">—</div><div class="stat-label">Réservées</div></div>
     <div class="stat"><div class="stat-num" id="stat-pending">—</div><div class="stat-label">En attente</div></div>
     <div class="stat"><div class="stat-num" id="stat-nights">—</div><div class="stat-label">Nuits totales</div></div>
   </div>
@@ -345,7 +345,7 @@
   <div class="filters" id="filters">
     <span class="filter-label">Filtrer :</span>
     <button class="filter-btn active" onclick="filterStatus('Tous')">Tous</button>
-    <button class="filter-btn" onclick="filterStatus('Confirmée')">✅ Confirmées</button>
+    <button class="filter-btn" onclick="filterStatus('Réservé')">✅ Réservées</button>
     <button class="filter-btn" onclick="filterStatus('En attente')">⏳ En attente</button>
     <button class="filter-btn" onclick="filterStatus('Annulée')">❌ Annulées</button>
     <button class="filter-btn" onclick="filterStatus('Terminée')">🏁 Terminées</button>
@@ -401,21 +401,57 @@
   function parseCSV(text) {
     const lines = text.trim().split('\n');
     if (lines.length < 2) return [];
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+    function splitCSVLine(line) {
+      const fields = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { current += ch; }
+        } else {
+          if (ch === '"') { inQuotes = true; }
+          else if (ch === ',') { fields.push(current.trim()); current = ''; }
+          else { current += ch; }
+        }
+      }
+      fields.push(current.trim());
+      return fields;
+    }
+
+    const headers = splitCSVLine(lines[0]);
     return lines.slice(1).map(line => {
-      const vals = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,))/g) || [];
+      const vals = splitCSVLine(line);
       const obj = {};
-      headers.forEach((h, i) => {
-        obj[h] = (vals[i] || '').replace(/"/g, '').trim();
-      });
+      headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
       return obj;
     }).filter(r => r['Logement'] || r['logement']);
   }
 
+  const MOIS_FR = {
+    'janvier':1,'février':2,'mars':3,'avril':4,'mai':5,'juin':6,
+    'juillet':7,'août':8,'septembre':9,'octobre':10,'novembre':11,'décembre':12
+  };
+
+  function parseFrenchDate(str) {
+    if (!str) return null;
+    // Format: "mardi 03 mars 2026" ou "03 mars 2026"
+    const m = str.match(/(\d{1,2})\s+([\wéû]+)\s+(\d{4})/);
+    if (m) {
+      const month = MOIS_FR[m[2].toLowerCase()];
+      if (month) return new Date(parseInt(m[3]), month - 1, parseInt(m[1]));
+    }
+    const d = new Date(str);
+    return isNaN(d) ? null : d;
+  }
+
   function formatDate(str) {
     if (!str) return '<span style="color:#bbb">—</span>';
-    const d = new Date(str);
-    if (isNaN(d)) return str;
+    const d = parseFrenchDate(str);
+    if (!d) return str;
     const day   = d.getDate();
     const month = d.toLocaleDateString('fr-FR', { month: 'short' });
     const year  = d.getFullYear();
@@ -467,7 +503,7 @@
   }
 
   function updateStats(data) {
-    const confirmed = data.filter(r => (r['Statut'] || r['statut'] || '') === 'Confirmée').length;
+    const confirmed = data.filter(r => ['Confirmée','Réservé'].includes(r['Statut'] || r['statut'] || '')).length;
     const pending   = data.filter(r => (r['Statut'] || r['statut'] || '') === 'En attente').length;
     const nights    = data.reduce((s, r) => s + (parseInt(r['Nuits'] || r['nuits']) || 0), 0);
     document.getElementById('stat-total').textContent     = data.length;
@@ -488,10 +524,13 @@
     empty.style.display   = 'none';
 
     try {
-      const res  = await fetch(CSV_URL);
+      // Proxy CORS nécessaire pour les fichiers ouverts en file:// ou domaines non autorisés
+      const proxyURL = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(CSV_URL);
+      const res  = await fetch(proxyURL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       allData = parseCSV(text);
+      loading.style.display = 'none';
       updateStats(allData);
       filterStatus(currentFilter);
 
