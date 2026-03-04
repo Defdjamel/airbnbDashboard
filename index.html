@@ -460,6 +460,26 @@
     document.getElementById('stat-nights').textContent    = nights;
   }
 
+  async function fetchCSV() {
+    // Essai direct (fonctionne sur GitHub Pages / localhost)
+    try {
+      const res = await fetch(CSV_URL, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) return await res.text();
+    } catch (_) {}
+    // Fallback via proxy CORS (nécessaire en file://)
+    const proxies = [
+      'https://api.allorigins.win/raw?url=',
+      'https://corsproxy.io/?'
+    ];
+    for (const proxy of proxies) {
+      try {
+        const res = await fetch(proxy + encodeURIComponent(CSV_URL), { signal: AbortSignal.timeout(8000) });
+        if (res.ok) return await res.text();
+      } catch (_) {}
+    }
+    throw new Error('Impossible de joindre Google Sheets');
+  }
+
   async function loadData() {
     const loading = document.getElementById('loading-state');
     const errBox  = document.getElementById('error-state');
@@ -472,11 +492,7 @@
     empty.style.display   = 'none';
 
     try {
-      // Proxy CORS nécessaire pour les fichiers ouverts en file:// ou domaines non autorisés
-      const proxyURL = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(CSV_URL);
-      const res  = await fetch(proxyURL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
+      const text = await fetchCSV();
       allData = parseCSV(text);
       loading.style.display = 'none';
       updateStats(allData);
@@ -487,7 +503,7 @@
     } catch (e) {
       loading.style.display = 'none';
       errBox.style.display  = 'block';
-      document.getElementById('error-msg').textContent = e.message + ' — Vérifiez les permissions du Sheet (partage public requis)';
+      document.getElementById('error-msg').textContent = e.message;
     }
   }
 
