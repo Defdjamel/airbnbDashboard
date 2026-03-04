@@ -184,6 +184,7 @@
     }
     .property-dates .arrow-in { color: var(--confirm); }
     .property-dates .arrow-out { color: var(--cancelled); }
+    .date-past { text-decoration: line-through; opacity: .5; }
 
     .nights-badge {
       position: absolute;
@@ -436,6 +437,11 @@
       const name     = r['Logement'] || r['logement'] || '—';
       const nights   = r['Nuits'] || r['nuits'] || '—';
       const status   = r['Statut'] || r['statut'] || '—';
+      const ciDate   = parseFrenchDate(r['Check-in'] || r['check-in']);
+      const coDate   = parseFrenchDate(r['Check-out'] || r['check-out']);
+      const today    = new Date(); today.setHours(0,0,0,0);
+      const ciPast   = ciDate && ciDate < today ? ' date-past' : '';
+      const coPast   = coDate && coDate < today ? ' date-past' : '';
       return `
       <div class="resa-card" style="animation-delay:${i * 0.04}s">
         <div class="property-cell">
@@ -443,8 +449,8 @@
           <div class="property-info">
             <span class="property-name">${name}</span>
             <div class="property-dates">
-                <span><span class="arrow-in">↓</span> ${checkin}</span>
-                <span><span class="arrow-out">↑</span> ${checkout}</span>
+                <span class="${ciPast}"><span class="arrow-in">↓</span> ${checkin}</span>
+                <span class="${coPast}"><span class="arrow-out">↑</span> ${checkout}</span>
               </div>
           </div>
         </div>
