@@ -390,14 +390,13 @@
   // ══════════════════════════════════════════
   //  ⚙️  CONFIGURATION — modifie cette ligne
   // ══════════════════════════════════════════
-  const SHEET_ID  = 'TON_SHEET_ID';   // ← colle l'ID de ton Google Sheet ici
-  const SHEET_GID = '0';              // ← 0 = premier onglet (change si nécessaire)
   // ══════════════════════════════════════════
+  //  URL CSV directement depuis Google Sheets
+  // ══════════════════════════════════════════
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMDGUlhuWdDQVNmup1Xs0C9dR6utNO73ysZJPhsfMP0HDI0NTkPw62megwTyHcWMDNpr3AX1k0tr9L/pub?gid=1815085392&single=true&output=csv';
 
   let allData = [];
   let currentFilter = 'Tous';
-
-  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
 
   function parseCSV(text) {
     const lines = text.trim().split('\n');
@@ -482,15 +481,6 @@
     const errBox  = document.getElementById('error-state');
     const table   = document.getElementById('resa-table');
     const empty   = document.getElementById('empty-state');
-
-    // Show config warning if default ID
-    if (SHEET_ID === 'TON_SHEET_ID') {
-      document.getElementById('config-banner').classList.add('show');
-      loading.style.display = 'none';
-      errBox.style.display = 'block';
-      document.getElementById('error-msg').textContent = "Remplace TON_SHEET_ID dans le fichier index.html";
-      return;
-    }
 
     loading.style.display = 'block';
     errBox.style.display  = 'none';
