@@ -131,36 +131,7 @@
       padding: 40px 40px 80px;
     }
 
-    /* ── Filters ── */
-    .filters {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 28px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .filter-label {
-      font-size: 12px;
-      color: var(--stone);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-right: 4px;
-    }
-    .filter-btn {
-      padding: 7px 16px;
-      border-radius: 100px;
-      border: 1.5px solid #ddd;
-      background: #fff;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all .18s;
-      color: var(--stone);
-    }
-    .filter-btn:hover { border-color: var(--coral); color: var(--coral); }
-    .filter-btn.active { background: var(--coral); color: #fff; border-color: var(--coral); }
-
-    /* ── Table ── */
+    /* ── Table / Cards ── */
     .table-wrap {
       background: #fff;
       border-radius: 16px;
@@ -169,45 +140,24 @@
       border: 1px solid #ede9e4;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+    table { width: 100%; border-collapse: collapse; }
 
-    thead tr {
-      background: var(--mist);
-      border-bottom: 2px solid #ede9e4;
-    }
-    th {
-      padding: 14px 20px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--stone);
-      text-transform: uppercase;
-      letter-spacing: .1em;
-    }
-
-    tbody tr {
+    .resa-card {
+      position: relative;
+      padding: 20px 24px;
       border-bottom: 1px solid #f3f0ec;
       transition: background .14s;
       animation: rowIn .4s ease both;
     }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: var(--mist); }
+    .resa-card:last-child { border-bottom: none; }
+    .resa-card:hover { background: var(--mist); }
 
     @keyframes rowIn {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    td {
-      padding: 16px 20px;
-      font-size: 14px;
-      vertical-align: middle;
-    }
-
-    .property-cell {
+    .resa-card .property-cell {
       display: flex;
       align-items: flex-start;
       gap: 12px;
@@ -223,6 +173,7 @@
     .property-name {
       font-weight: 500;
       color: var(--ink);
+      font-size: 15px;
     }
     .property-dates {
       font-size: 12px;
@@ -234,6 +185,9 @@
     .property-dates .arrow { color: #ccc; }
 
     .nights-badge {
+      position: absolute;
+      top: 20px;
+      right: 24px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -246,10 +200,13 @@
     }
 
     .status-badge {
+      position: absolute;
+      bottom: 20px;
+      left: 44px;
       display: inline-block;
-      padding: 5px 14px;
+      padding: 4px 12px;
       border-radius: 100px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
       letter-spacing: .02em;
     }
@@ -347,30 +304,14 @@
     ⚙️ <strong>Configuration requise :</strong> Remplace <code>TON_SHEET_ID</code> dans ce fichier par l'ID de ton Google Sheet, et assure-toi que le sheet est partagé en lecture publique.
   </div>
 
-  <div class="filters" id="filters">
-    <span class="filter-label">Filtrer :</span>
-    <button class="filter-btn active" onclick="filterStatus('Tous')">Tous</button>
-    <button class="filter-btn" onclick="filterStatus('Réservé')">✅ Réservées</button>
-    <button class="filter-btn" onclick="filterStatus('En attente')">⏳ En attente</button>
-    <button class="filter-btn" onclick="filterStatus('Annulée')">❌ Annulées</button>
-    <button class="filter-btn" onclick="filterStatus('Terminée')">🏁 Terminées</button>
-  </div>
-
   <div class="table-wrap">
     <div class="state-box" id="loading-state">
       <div class="icon">⏳</div>
       <p>Chargement des réservations…</p>
     </div>
-    <table id="resa-table" style="display:none">
-      <thead>
-        <tr>
-          <th>Logement</th>
-          <th>Nuits</th>
-          <th>Statut</th>
-        </tr>
-      </thead>
-      <tbody id="resa-body"></tbody>
-    </table>
+    <div id="resa-table" style="display:none">
+      <div id="resa-body"></div>
+    </div>
     <div class="state-box" id="empty-state" style="display:none">
       <div class="icon">🏠</div>
       <p>Aucune réservation trouvée</p>
@@ -399,7 +340,6 @@
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMDGUlhuWdDQVNmup1Xs0C9dR6utNO73ysZJPhsfMP0HDI0NTkPw62megwTyHcWMDNpr3AX1k0tr9L/pub?gid=1815085392&single=true&output=csv';
 
   let allData = [];
-  let currentFilter = 'Tous';
 
   function parseCSV(text) {
     const lines = text.trim().split('\n');
@@ -455,7 +395,12 @@
     if (!str) return '—';
     const d = parseFrenchDate(str);
     if (!d) return str;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    const jour = d.toLocaleDateString('fr-FR', { weekday: 'short' });
+    const num  = d.getDate();
+    const mois = d.toLocaleDateString('fr-FR', { month: 'short' });
+    // Capitalize first 3 letters: "lun." → "Lun", "nov." → "Nov"
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1, 3);
+    return `${cap(jour)} ${num} ${cap(mois)}`;
   }
 
   function statusClass(s) {
@@ -463,7 +408,7 @@
   }
 
   function renderTable(data) {
-    const tbody = document.getElementById('resa-body');
+    const container = document.getElementById('resa-body');
     const table = document.getElementById('resa-table');
     const empty = document.getElementById('empty-state');
     document.getElementById('loading-state').style.display = 'none';
@@ -476,43 +421,30 @@
     }
 
     empty.style.display = 'none';
-    table.style.display = 'table';
+    table.style.display = 'block';
 
-    tbody.innerHTML = data.map((r, i) => {
+    container.innerHTML = data.map((r, i) => {
       const checkin  = formatDate(r['Check-in'] || r['check-in']);
       const checkout = formatDate(r['Check-out'] || r['check-out']);
       const name     = r['Logement'] || r['logement'] || '—';
       const nights   = r['Nuits'] || r['nuits'] || '—';
       const status   = r['Statut'] || r['statut'] || '—';
       return `
-      <tr style="animation-delay:${i * 0.04}s">
-        <td>
-          <div class="property-cell">
-            <span class="property-dot"></span>
-            <div class="property-info">
-              <span class="property-name">${name}</span>
-              <span class="property-dates">${checkin} <span class="arrow">→</span> ${checkout}</span>
-            </div>
+      <div class="resa-card" style="animation-delay:${i * 0.04}s">
+        <div class="property-cell">
+          <span class="property-dot"></span>
+          <div class="property-info">
+            <span class="property-name">${name}</span>
+            <span class="property-dates">${checkin} <span class="arrow">→</span> ${checkout}</span>
           </div>
-        </td>
-        <td><span class="nights-badge">🌙 ${nights}</span></td>
-        <td><span class="${statusClass(status)}">${status}</span></td>
-      </tr>`;
+        </div>
+        <span class="nights-badge">🌙 ${nights}</span>
+        <span class="${statusClass(status)}">${status}</span>
+      </div>`;
     }).join('');
 
     document.getElementById('footer-count').textContent =
       `${data.length} réservation${data.length > 1 ? 's' : ''} affichée${data.length > 1 ? 's' : ''}`;
-  }
-
-  function filterStatus(status) {
-    currentFilter = status;
-    document.querySelectorAll('.filter-btn').forEach(b => {
-      b.classList.toggle('active', b.textContent.includes(status) || (status === 'Tous' && b.textContent === 'Tous'));
-    });
-    const filtered = status === 'Tous'
-      ? allData
-      : allData.filter(r => (r['Statut'] || r['statut'] || '') === status);
-    renderTable(filtered);
   }
 
   function updateStats(data) {
@@ -545,7 +477,7 @@
       allData = parseCSV(text);
       loading.style.display = 'none';
       updateStats(allData);
-      filterStatus(currentFilter);
+      renderTable(allData);
 
       const now = new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
       document.getElementById('last-update').textContent = `Dernière mise à jour : ${now}`;
