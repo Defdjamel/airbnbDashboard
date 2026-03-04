@@ -1,0 +1,37 @@
+Voici le fichier `index.html` prêt. Maintenant les étapes pour le mettre en ligne sur GitHub Pages :
+
+---
+
+## 🚀 Déploiement GitHub Pages (5 min)
+
+### 1 — Modifier le fichier
+Ouvre `index.html` et remplace ligne 3 :
+```js
+const SHEET_ID = 'TON_SHEET_ID';
+```
+par l'ID de ton Google Sheet (la partie entre `/d/` et `/edit` dans l'URL).
+
+### 2 — Créer un repo GitHub
+1. Va sur [github.com](https://github.com) → **New repository**
+2. Nom : `reservations` (ou ce que tu veux)
+3. Coche **Public**
+4. Clique **Create repository**
+
+### 3 — Uploader le fichier
+1. Clique **Add file → Upload files**
+2. Glisse ton `index.html`
+3. Clique **Commit changes**
+
+### 4 — Activer GitHub Pages
+1. **Settings** → **Pages**
+2. Source : **Deploy from a branch** → branche `main`, dossier `/root`
+3. Clique **Save**
+
+### ✅ Ton URL sera :
+```
+https://ton-username.github.io/reservations
+```
+
+---
+
+**Important :** Ton Google Sheet doit être partagé → *Tout le monde avec le lien peut voir*. La page se **rafraîchit automatiquement toutes les 5 minutes**.
