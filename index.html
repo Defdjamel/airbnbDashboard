@@ -144,7 +144,7 @@
 
     .resa-card {
       position: relative;
-      padding: 20px 24px;
+      padding: 20px 24px 44px;
       border-bottom: 1px solid #f3f0ec;
       transition: background .14s;
       animation: rowIn .4s ease both;
@@ -176,13 +176,14 @@
       font-size: 15px;
     }
     .property-dates {
-      font-size: 12px;
+      font-size: 14px;
       color: var(--stone);
       display: flex;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      gap: 3px;
     }
-    .property-dates .arrow { color: #ccc; }
+    .property-dates .arrow-in { color: var(--confirm); }
+    .property-dates .arrow-out { color: var(--cancelled); }
 
     .nights-badge {
       position: absolute;
@@ -202,7 +203,7 @@
     .status-badge {
       position: absolute;
       bottom: 20px;
-      left: 44px;
+      right: 24px;
       display: inline-block;
       padding: 4px 12px;
       border-radius: 100px;
@@ -395,11 +396,10 @@
     if (!str) return '—';
     const d = parseFrenchDate(str);
     if (!d) return str;
-    const jour = d.toLocaleDateString('fr-FR', { weekday: 'short' });
+    const jour = d.toLocaleDateString('fr-FR', { weekday: 'long' });
     const num  = d.getDate();
-    const mois = d.toLocaleDateString('fr-FR', { month: 'short' });
-    // Capitalize first 3 letters: "lun." → "Lun", "nov." → "Nov"
-    const cap = s => s.charAt(0).toUpperCase() + s.slice(1, 3);
+    const mois = d.toLocaleDateString('fr-FR', { month: 'long' });
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
     return `${cap(jour)} ${num} ${cap(mois)}`;
   }
 
@@ -435,7 +435,10 @@
           <span class="property-dot"></span>
           <div class="property-info">
             <span class="property-name">${name}</span>
-            <span class="property-dates">${checkin} <span class="arrow">→</span> ${checkout}</span>
+            <div class="property-dates">
+                <span><span class="arrow-in">↓</span> ${checkin}</span>
+                <span><span class="arrow-out">↑</span> ${checkout}</span>
+              </div>
           </div>
         </div>
         <span class="nights-badge">🌙 ${nights}</span>
