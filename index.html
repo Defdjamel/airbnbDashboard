@@ -150,7 +150,7 @@
       animation: rowIn .4s ease both;
     }
     .resa-card:last-child { border-bottom: none; }
-    .resa-card:hover { background: var(--mist); }
+    .resa-card:hover { background: #fff; }
 
     @keyframes rowIn {
       from { opacity: 0; transform: translateY(8px); }
@@ -305,6 +305,13 @@
     ⚙️ <strong>Configuration requise :</strong> Remplace <code>TON_SHEET_ID</code> dans ce fichier par l'ID de ton Google Sheet, et assure-toi que le sheet est partagé en lecture publique.
   </div>
 
+  <div style="margin-bottom: 16px;">
+    <label style="font-size: 13px; color: var(--stone); cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+      <input type="checkbox" id="show-past" onchange="applyFilter()" style="accent-color: var(--coral); width: 16px; height: 16px; cursor: pointer;">
+      Afficher les réservations passées
+    </label>
+  </div>
+
   <div class="table-wrap">
     <div class="state-box" id="loading-state">
       <div class="icon">⏳</div>
@@ -450,6 +457,23 @@
       `${data.length} réservation${data.length > 1 ? 's' : ''} affichée${data.length > 1 ? 's' : ''}`;
   }
 
+  function getFilteredData() {
+    const showPast = document.getElementById('show-past').checked;
+    if (showPast) return allData;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return allData.filter(r => {
+      const checkout = parseFrenchDate(r['Check-out'] || r['check-out']);
+      return !checkout || checkout >= today;
+    });
+  }
+
+  function applyFilter() {
+    const filtered = getFilteredData();
+    updateStats(filtered);
+    renderTable(filtered);
+  }
+
   function updateStats(data) {
     const confirmed = data.filter(r => ['Confirmée','Réservé'].includes(r['Statut'] || r['statut'] || '')).length;
     const pending   = data.filter(r => (r['Statut'] || r['statut'] || '') === 'En attente').length;
@@ -495,8 +519,7 @@
       const text = await fetchCSV();
       allData = parseCSV(text);
       loading.style.display = 'none';
-      updateStats(allData);
-      renderTable(allData);
+      applyFilter();
 
       const now = new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
       document.getElementById('last-update').textContent = `Dernière mise à jour : ${now}`;
