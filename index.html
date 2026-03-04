@@ -207,26 +207,31 @@
       vertical-align: middle;
     }
 
-    .property-name {
-      font-weight: 500;
-      color: var(--ink);
+    .property-cell {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      align-items: flex-start;
+      gap: 12px;
     }
     .property-dot {
       width: 8px; height: 8px;
       border-radius: 50%;
       background: var(--coral);
       flex-shrink: 0;
+      margin-top: 6px;
     }
-
-    .date-cell {
+    .property-info { display: flex; flex-direction: column; gap: 4px; }
+    .property-name {
+      font-weight: 500;
       color: var(--ink);
-      font-variant-numeric: tabular-nums;
     }
-    .date-cell .day { font-size: 16px; font-weight: 500; }
-    .date-cell .month { font-size: 11px; color: var(--stone); text-transform: uppercase; letter-spacing: .05em; }
+    .property-dates {
+      font-size: 12px;
+      color: var(--stone);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .property-dates .arrow { color: #ccc; }
 
     .nights-badge {
       display: inline-flex;
@@ -360,8 +365,6 @@
       <thead>
         <tr>
           <th>Logement</th>
-          <th>Check-in</th>
-          <th>Check-out</th>
           <th>Nuits</th>
           <th>Statut</th>
         </tr>
@@ -449,13 +452,10 @@
   }
 
   function formatDate(str) {
-    if (!str) return '<span style="color:#bbb">—</span>';
+    if (!str) return '—';
     const d = parseFrenchDate(str);
     if (!d) return str;
-    const day   = d.getDate();
-    const month = d.toLocaleDateString('fr-FR', { month: 'short' });
-    const year  = d.getFullYear();
-    return `<div class="date-cell"><span class="day">${day}</span> <span class="month">${month} ${year}</span></div>`;
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   function statusClass(s) {
@@ -478,15 +478,27 @@
     empty.style.display = 'none';
     table.style.display = 'table';
 
-    tbody.innerHTML = data.map((r, i) => `
+    tbody.innerHTML = data.map((r, i) => {
+      const checkin  = formatDate(r['Check-in'] || r['check-in']);
+      const checkout = formatDate(r['Check-out'] || r['check-out']);
+      const name     = r['Logement'] || r['logement'] || '—';
+      const nights   = r['Nuits'] || r['nuits'] || '—';
+      const status   = r['Statut'] || r['statut'] || '—';
+      return `
       <tr style="animation-delay:${i * 0.04}s">
-        <td><div class="property-name"><span class="property-dot"></span>${r['Logement'] || r['logement'] || '—'}</div></td>
-        <td>${formatDate(r['Check-in'] || r['check-in'])}</td>
-        <td>${formatDate(r['Check-out'] || r['check-out'])}</td>
-        <td><span class="nights-badge">🌙 ${r['Nuits'] || r['nuits'] || '—'}</span></td>
-        <td><span class="${statusClass(r['Statut'] || r['statut'])}">${r['Statut'] || r['statut'] || '—'}</span></td>
-      </tr>
-    `).join('');
+        <td>
+          <div class="property-cell">
+            <span class="property-dot"></span>
+            <div class="property-info">
+              <span class="property-name">${name}</span>
+              <span class="property-dates">${checkin} <span class="arrow">→</span> ${checkout}</span>
+            </div>
+          </div>
+        </td>
+        <td><span class="nights-badge">🌙 ${nights}</span></td>
+        <td><span class="${statusClass(status)}">${status}</span></td>
+      </tr>`;
+    }).join('');
 
     document.getElementById('footer-count').textContent =
       `${data.length} réservation${data.length > 1 ? 's' : ''} affichée${data.length > 1 ? 's' : ''}`;
