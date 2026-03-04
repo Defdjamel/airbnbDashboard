@@ -485,9 +485,11 @@
   }
 
   async function fetchCSV() {
+    const bustCache = '&_t=' + Date.now();
+    const urlNoCache = CSV_URL + bustCache;
     // Essai direct (fonctionne sur GitHub Pages / localhost)
     try {
-      const res = await fetch(CSV_URL, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(urlNoCache, { signal: AbortSignal.timeout(5000), cache: 'no-store' });
       if (res.ok) return await res.text();
     } catch (_) {}
     // Fallback via proxy CORS (nécessaire en file://)
@@ -497,7 +499,7 @@
     ];
     for (const proxy of proxies) {
       try {
-        const res = await fetch(proxy + encodeURIComponent(CSV_URL), { signal: AbortSignal.timeout(8000) });
+        const res = await fetch(proxy + encodeURIComponent(urlNoCache), { signal: AbortSignal.timeout(8000), cache: 'no-store' });
         if (res.ok) return await res.text();
       } catch (_) {}
     }
