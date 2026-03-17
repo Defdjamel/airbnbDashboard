@@ -279,10 +279,9 @@
     }
     .calendar-nav:hover { background: var(--coral-soft); color: var(--coral); }
 
-    .calendar-grid {
+    .calendar-days-header {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      overflow: hidden;
     }
     .calendar-day-name {
       padding: 10px 4px;
@@ -294,13 +293,15 @@
       letter-spacing: .06em;
       border-bottom: 1px solid #f3f0ec;
     }
-    .calendar-day-name:last-of-type { border-right: none; }
+    .calendar-week {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      position: relative;
+    }
     .calendar-cell {
-      min-height: 80px;
       border-right: 1px solid #f3f0ec;
       border-bottom: 1px solid #f3f0ec;
       padding: 4px;
-      position: relative;
     }
     .calendar-cell.dow-6 { border-right: none; }
     .calendar-cell.other-month { background: #faf9f7; }
@@ -319,36 +320,27 @@
       background: var(--coral);
       color: #fff;
       border-radius: 50%;
-      width: 22px; height: 22px;
+      width: 26px; height: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 14px;
     }
     .calendar-cell.other-month .calendar-day-num { opacity: .4; }
 
-    .cal-events-area {
-      position: relative;
-      z-index: 1;
-    }
-    .cal-event {
-      font-size: 17px;
-      padding: 2px 5px;
-      border-radius: 5px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: default;
+    .cal-bar {
+      position: absolute;
       height: 32px;
       line-height: 32px;
+      font-size: 17px;
       font-weight: 600;
-      margin-bottom: 2px;
+      padding: 0 8px;
+      white-space: nowrap;
+      overflow: visible;
+      cursor: default;
+      z-index: 2;
+      color: #fff;
     }
-    .cal-event.start { border-radius: 5px 0 0 5px; margin-right: -5px; padding-right: 5px; }
-    .cal-event.middle { border-radius: 0; margin-left: -5px; margin-right: -5px; padding-left: 5px; padding-right: 5px; }
-    .cal-event.end { border-radius: 0 5px 5px 0; margin-left: -5px; padding-left: 5px; }
-    .cal-event.single { border-radius: 5px; }
-    .cal-event.start.end { border-radius: 5px; margin: 0; padding: 2px 5px; }
-    .cal-event-spacer { height: 32px; margin-bottom: 2px; }
 
     /* ── Calendar legend ── */
     .calendar-legend {
@@ -459,33 +451,25 @@
       .calendar-wrap { border-radius: 10px; }
       .calendar-header { padding: 12px 12px; }
       .calendar-header h2 { font-size: 16px; }
-      .calendar-day-name { padding: 6px 2px; font-size: 10px; letter-spacing: 0; }
-      .calendar-cell {
-        min-height: 52px;
-        padding: 2px;
-      }
+      .calendar-day-name { padding: 6px 2px; font-size: 13px; letter-spacing: 0; }
+      .calendar-cell { padding: 2px; }
       .calendar-day-num {
-        font-size: 10px;
-        height: 18px;
+        font-size: 14px;
+        height: 22px;
         padding-left: 1px;
       }
       .calendar-cell.today .calendar-day-num span {
-        width: 18px; height: 18px;
-        font-size: 10px;
+        width: 20px; height: 20px;
+        font-size: 12px;
       }
-      .cal-event {
-        font-size: 9px;
-        padding: 1px 3px;
-        height: 18px;
-        line-height: 18px;
-        margin-bottom: 1px;
+      .cal-bar {
+        font-size: 12px;
+        height: 22px;
+        line-height: 22px;
+        padding: 0 4px;
       }
-      .cal-event-spacer { height: 18px; }
-      .cal-event.start { margin-right: -3px; padding-right: 3px; }
-      .cal-event.middle { margin-left: -3px; margin-right: -3px; padding-left: 3px; padding-right: 3px; }
-      .cal-event.end { margin-left: -3px; padding-left: 3px; }
       .calendar-legend { padding: 10px 12px; gap: 8px; }
-      .calendar-legend-item { font-size: 11px; }
+      .calendar-legend-item { font-size: 12px; }
       .calendar-legend-dot { width: 10px; height: 10px; }
     }
   </style>
@@ -840,7 +824,6 @@
     const grid = document.getElementById('calendar-grid');
 
     const joursFr = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-    let html = joursFr.map(j => `<div class="calendar-day-name">${j}</div>`).join('');
 
     // Préparer les données filtrées
     const data = getFilteredData();
@@ -869,106 +852,115 @@
       return { name, ci, co, ciHour, coHour, nights, color: propertyColors[name] || 0 };
     }).filter(r => r.ci && r.co);
 
-    // Pour chaque cellule, déterminer quelles réservations sont actives
-    // et leur position (start/middle/end)
+    // Construire les dates de chaque cellule
     const cellDates = [];
     for (let i = 0; i < totalCells; i++) {
-      const d = new Date(year, month, 1 - startDow + i);
-      cellDates.push(d);
+      cellDates.push(new Date(year, month, 1 - startDow + i));
     }
 
-    // Créer un slot tracker pour empiler les réservations sans chevauchement
-    // Chaque cellule a des slots; une réservation garde le même slot sur tous ses jours
-    const resaSlots = new Map(); // resa index -> slot number
+    // Assigner un slot vertical par réservation (éviter chevauchements)
+    const resaSlots = new Map();
     const cellSlotUsed = cellDates.map(() => new Set());
-
-    // Assigner les slots (inclut le jour de check-out)
     reservations.forEach((resa, ri) => {
       let slot = 0;
       while (true) {
-        let slotFree = true;
+        let free = true;
         for (let ci = 0; ci < cellDates.length; ci++) {
-          const d = cellDates[ci];
-          if (d >= resa.ci && d <= resa.co) {
-            if (cellSlotUsed[ci].has(slot)) { slotFree = false; break; }
+          if (cellDates[ci] >= resa.ci && cellDates[ci] <= resa.co) {
+            if (cellSlotUsed[ci].has(slot)) { free = false; break; }
           }
         }
-        if (slotFree) break;
+        if (free) break;
         slot++;
       }
       resaSlots.set(ri, slot);
       for (let ci = 0; ci < cellDates.length; ci++) {
-        const d = cellDates[ci];
-        if (d >= resa.ci && d <= resa.co) {
+        if (cellDates[ci] >= resa.ci && cellDates[ci] <= resa.co) {
           cellSlotUsed[ci].add(slot);
         }
       }
     });
 
-    for (let i = 0; i < totalCells; i++) {
-      const d = cellDates[i];
-      const isOther = d.getMonth() !== month;
-      const isToday = d.getTime() === today.getTime();
-      let classes = 'calendar-cell';
-      if (i % 7 === 6) classes += ' dow-6';
-      if (isOther) classes += ' other-month';
-      if (isToday) classes += ' today';
+    // Hauteurs pour le positionnement des barres
+    const dayNumH = 32;
+    const barH = 34; // hauteur barre + gap
 
-      // Trouver les réservations pour ce jour (inclut le checkout day)
-      const dayEvents = [];
-      reservations.forEach((resa, ri) => {
-        if (d >= resa.ci && d <= resa.co) {
-          const isCheckinDay = d.getTime() === resa.ci.getTime();
-          const isCheckoutDay = d.getTime() === resa.co.getTime();
-          const isDow0 = i % 7 === 0;
-          const isDow6 = i % 7 === 6;
+    // Construire le HTML semaine par semaine
+    const numWeeks = totalCells / 7;
+    let html = '<div class="calendar-days-header">' +
+      joursFr.map(j => `<div class="calendar-day-name">${j}</div>`).join('') + '</div>';
 
-          // Déterminer la position du segment
-          let pos = 'middle';
-          if (isCheckinDay && isCheckoutDay) pos = 'single';
-          else if (isCheckoutDay) pos = 'end';
-          else if (isCheckinDay && isDow6) pos = 'single';
-          else if (isCheckinDay) pos = 'start';
-          else if (isDow6) pos = 'end';
-          else if (isDow0) pos = 'start';
+    for (let w = 0; w < numWeeks; w++) {
+      // Trouver le max slot pour cette semaine (pour la hauteur min)
+      let maxSlot = -1;
+      for (let col = 0; col < 7; col++) {
+        cellSlotUsed[w * 7 + col].forEach(s => { if (s > maxSlot) maxSlot = s; });
+      }
+      const weekMinH = dayNumH + (maxSlot + 1) * barH + 8;
 
-          // Marges basées sur l'heure (% de la cellule)
-          let marginLeft = 0, marginRight = 0;
-          if (isCheckinDay) marginLeft = Math.round(resa.ciHour / 24 * 100);
-          if (isCheckoutDay) marginRight = Math.round((24 - resa.coHour) / 24 * 100);
-
-          const showName = isCheckinDay || isDow0;
-          dayEvents.push({ ...resa, pos, showName, marginLeft, marginRight, slot: resaSlots.get(ri) });
-        }
-      });
-
-      // Trier par slot
-      dayEvents.sort((a, b) => a.slot - b.slot);
-
-      // Générer les events HTML avec des spacers pour les slots vides
-      let eventsHtml = '';
-      if (dayEvents.length > 0) {
-        const maxSlot = Math.max(...dayEvents.map(e => e.slot));
-        const slotMap = {};
-        dayEvents.forEach(e => { slotMap[e.slot] = e; });
-        for (let s = 0; s <= maxSlot; s++) {
-          if (slotMap[s]) {
-            const e = slotMap[s];
-            const label = e.showName && e.nights ? `🌙 ${e.nights}n` : '&nbsp;';
-            let style = '';
-            if (e.marginLeft) style += `margin-left:${e.marginLeft}%;`;
-            if (e.marginRight) style += `margin-right:${e.marginRight}%;`;
-            eventsHtml += `<div class="cal-event cal-color-${e.color} ${e.pos}" style="${style}" title="${e.name} — ${e.nights} nuits">${label}</div>`;
-          } else {
-            eventsHtml += `<div class="cal-event-spacer"></div>`;
-          }
-        }
+      // Cellules de la semaine
+      html += `<div class="calendar-week" style="min-height:${Math.max(weekMinH, 60)}px">`;
+      for (let col = 0; col < 7; col++) {
+        const i = w * 7 + col;
+        const d = cellDates[i];
+        const isOther = d.getMonth() !== month;
+        const isToday = d.getTime() === today.getTime();
+        let cls = 'calendar-cell';
+        if (col === 6) cls += ' dow-6';
+        if (isOther) cls += ' other-month';
+        if (isToday) cls += ' today';
+        html += `<div class="${cls}"><div class="calendar-day-num"><span>${d.getDate()}</span></div></div>`;
       }
 
-      html += `<div class="${classes}">
-        <div class="calendar-day-num"><span>${d.getDate()}</span></div>
-        <div class="cal-events-area">${eventsHtml}</div>
-      </div>`;
+      // Barres de réservation positionnées en absolu sur la semaine
+      reservations.forEach((resa, ri) => {
+        // Trouver les colonnes couvertes dans cette semaine
+        let startCol = -1, endCol = -1;
+        for (let col = 0; col < 7; col++) {
+          const d = cellDates[w * 7 + col];
+          if (d >= resa.ci && d <= resa.co) {
+            if (startCol === -1) startCol = col;
+            endCol = col;
+          }
+        }
+        if (startCol === -1) return;
+
+        const startDate = cellDates[w * 7 + startCol];
+        const endDate = cellDates[w * 7 + endCol];
+        const isCheckinDay = startDate.getTime() === resa.ci.getTime();
+        const isCheckoutDay = endDate.getTime() === resa.co.getTime();
+
+        // Calculer left et width en %
+        const colW = 100 / 7;
+        let left = startCol * colW;
+        let width = (endCol - startCol + 1) * colW;
+
+        // Ajustement horaire
+        if (isCheckinDay) {
+          const offset = resa.ciHour / 24 * colW;
+          left += offset;
+          width -= offset;
+        }
+        if (isCheckoutDay) {
+          const offset = (24 - resa.coHour) / 24 * colW;
+          width -= offset;
+        }
+
+        // Border-radius
+        let br = '0';
+        if (isCheckinDay && isCheckoutDay) br = '5px';
+        else if (isCheckinDay) br = '5px 0 0 5px';
+        else if (isCheckoutDay) br = '0 5px 5px 0';
+
+        const slot = resaSlots.get(ri);
+        const top = dayNumH + slot * barH;
+        const showLabel = isCheckinDay || startCol === 0;
+        const label = showLabel && resa.nights ? `🌙 ${resa.nights}n` : '';
+
+        html += `<div class="cal-bar cal-color-${resa.color}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%;top:${top}px;border-radius:${br}" title="${resa.name} — ${resa.nights} nuits">${label}</div>`;
+      });
+
+      html += '</div>';
     }
 
     grid.innerHTML = html;
