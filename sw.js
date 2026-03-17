@@ -1,4 +1,4 @@
-const CACHE_NAME = 'resa-v1';
+const CACHE_NAME = 'resa-v2';
 const PRECACHE = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
@@ -18,8 +18,14 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first pour les données CSV, cache-first pour le reste
-  if (e.request.url.includes('output=csv') || e.request.url.includes('allorigins') || e.request.url.includes('corsproxy') || e.request.url.includes('codetabs')) {
+  // Network-first pour les flux de donnees, cache-first pour le reste
+  if (
+    e.request.url.includes('.ics') ||
+    e.request.url.includes('output=csv') ||
+    e.request.url.includes('allorigins') ||
+    e.request.url.includes('corsproxy') ||
+    e.request.url.includes('codetabs')
+  ) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
   } else {
     e.respondWith(

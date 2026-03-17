@@ -11,6 +11,18 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script>
+    window.ICAL_SOURCES = [
+      {
+        name: 'Logement Orange Centre',
+        url: 'https://www.airbnb.fr/calendar/ical/1622519047009810707.ics?t=130270b0f682469ab863a960708389dd'
+      },
+      
+      { name: 'Piolenc ', 
+      url: 'https://www.airbnb.fr/calendar/ical/1447792521722741787.ics?s=a3c1596073f550165fc5c2f4760c737c' 
+    }
+    ];
+  </script>
   <style>
     :root {
       --coral: #FF385C;
@@ -228,6 +240,7 @@
     .status-En.attente, .status-Pending   { background: var(--pending-bg); color: var(--pending); }
     .status-Annulée, .status-Cancelled   { background: var(--cancelled-bg); color: var(--cancelled); }
     .status-Terminée, .status-Completed  { background: var(--done-bg); color: var(--done); }
+    .status-Bloqué, .status-Blocked, .status-Indisponible, .status-Not.available { background: var(--done-bg); color: var(--done); }
 
     /* ── View toggle ── */
     .view-toggle {
@@ -440,6 +453,14 @@
       font-size: 12px;
       color: var(--ink);
     }
+    .calendar-legend-meta {
+      margin-left: auto;
+      color: var(--stone);
+      font-size: 11px;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
     .calendar-legend-dot {
       width: 12px; height: 12px;
       border-radius: 3px;
@@ -574,7 +595,7 @@
 
 <main>
   <div class="config-banner" id="config-banner">
-    ⚙️ <strong>Configuration requise :</strong> Remplace <code>TON_SHEET_ID</code> dans ce fichier par l'ID de ton Google Sheet, et assure-toi que le sheet est partagé en lecture publique.
+    ⚙️ <strong>Configuration requise :</strong> renseigne au moins un lien iCal Airbnb dans la liste <code>window.ICAL_SOURCES</code> en haut de ce fichier.
   </div>
 
   <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
@@ -599,12 +620,12 @@
     <div class="state-box" id="empty-state" style="display:none">
       <div class="icon">🏠</div>
       <p>Aucune réservation trouvée</p>
-      <small>Modifie le filtre ou ajoute des données dans ton Google Sheet</small>
+      <small>Modifie le filtre ou ajoute un lien iCal Airbnb dans la configuration</small>
     </div>
     <div class="state-box" id="error-state" style="display:none">
       <div class="icon">⚠️</div>
       <p>Impossible de charger les données</p>
-      <small id="error-msg">Vérifie l'ID du Sheet et les permissions de partage</small>
+      <small id="error-msg">Vérifie les liens iCal Airbnb et l'accès réseau</small>
     </div>
   </div>
 
@@ -626,46 +647,184 @@
 
 <script>
   // ══════════════════════════════════════════
-  //  ⚙️  CONFIGURATION — modifie cette ligne
+  //  ⚙️  CONFIGURATION
   // ══════════════════════════════════════════
+  //  La liste des liens iCal est définie en haut du fichier.
   // ══════════════════════════════════════════
-  //  URL CSV directement depuis Google Sheets
-  // ══════════════════════════════════════════
-  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMDGUlhuWdDQVNmup1Xs0C9dR6utNO73ysZJPhsfMP0HDI0NTkPw62megwTyHcWMDNpr3AX1k0tr9L/pub?gid=1815085392&single=true&output=csv';
+  const ICAL_SOURCES = Array.isArray(window.ICAL_SOURCES) ? window.ICAL_SOURCES : [];
+  const DEFAULT_CHECKIN_HOUR = 15;
+  const DEFAULT_CHECKOUT_HOUR = 12;
 
   let allData = [];
+  let sourceFileDates = [];
 
-  function parseCSV(text) {
-    const lines = text.trim().split('\n');
-    if (lines.length < 2) return [];
+  function normalizeSource(source, index) {
+    if (typeof source === 'string') {
+      return { name: `Logement ${index + 1}`, url: source.trim() };
+    }
+    return {
+      name: (source && source.name ? source.name : `Logement ${index + 1}`).trim(),
+      url: source && source.url ? source.url.trim() : ''
+    };
+  }
 
-    function splitCSVLine(line) {
-      const fields = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (inQuotes) {
-          if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
-          else if (ch === '"') { inQuotes = false; }
-          else { current += ch; }
-        } else {
-          if (ch === '"') { inQuotes = true; }
-          else if (ch === ',') { fields.push(current.trim()); current = ''; }
-          else { current += ch; }
-        }
+  function getConfiguredSources() {
+    return ICAL_SOURCES
+      .map(normalizeSource)
+      .filter(source => source.url && !source.url.includes('...ics?t=...'));
+  }
+
+  function updateConfigBanner() {
+    document.getElementById('config-banner').classList.toggle('show', getConfiguredSources().length === 0);
+  }
+
+  function decodeICalText(value) {
+    return (value || '')
+      .replace(/\\n/gi, '\n')
+      .replace(/\\,/g, ',')
+      .replace(/\\;/g, ';')
+      .replace(/\\\\/g, '\\');
+  }
+
+  function unfoldICalLines(text) {
+    const lines = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    const unfolded = [];
+    lines.forEach(line => {
+      if ((line.startsWith(' ') || line.startsWith('\t')) && unfolded.length) {
+        unfolded[unfolded.length - 1] += line.slice(1);
+      } else {
+        unfolded.push(line);
       }
-      fields.push(current.trim());
-      return fields;
+    });
+    return unfolded;
+  }
+
+  function parseICalDateValue(value) {
+    if (!value) return null;
+    let m = value.match(/^(\d{4})(\d{2})(\d{2})$/);
+    if (m) {
+      return {
+        date: new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3])),
+        allDay: true,
+        hour: 0,
+        minute: 0
+      };
     }
 
-    const headers = splitCSVLine(lines[0]);
-    return lines.slice(1).map(line => {
-      const vals = splitCSVLine(line);
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
-      return obj;
-    }).filter(r => r['Logement'] || r['logement']);
+    m = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/);
+    if (m) {
+      return {
+        date: new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]), parseInt(m[4]), parseInt(m[5]), parseInt(m[6])),
+        allDay: false,
+        hour: parseInt(m[4]),
+        minute: parseInt(m[5])
+      };
+    }
+
+    const parsed = new Date(value);
+    if (isNaN(parsed)) return null;
+    return {
+      date: parsed,
+      allDay: false,
+      hour: parsed.getHours(),
+      minute: parsed.getMinutes()
+    };
+  }
+
+  function formatDateValue(date, hour, minute) {
+    if (!(date instanceof Date) || isNaN(date)) return '';
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    if (typeof hour === 'number' && typeof minute === 'number') {
+      return `${dd}/${mm}/${yyyy} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+    }
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  function diffDays(start, end) {
+    const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+    const endUtc = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+    return Math.round((endUtc - startUtc) / 86400000);
+  }
+
+  function inferStatus(event) {
+    const haystack = [event.SUMMARY, event.STATUS, event.DESCRIPTION].filter(Boolean).join(' ').toLowerCase();
+    if (/cancel|annul/.test(haystack)) return 'Annulée';
+    if (/pending|tentative|attente/.test(haystack)) return 'En attente';
+    if (/blocked|not available|unavailable|indisponible|bloqu/.test(haystack)) return 'Bloqué';
+    if (/confirmed|confirm|reserved|booked|reservation|réserv/.test(haystack)) return 'Confirmée';
+    return event.STATUS ? decodeICalText(event.STATUS) : 'Confirmée';
+  }
+
+  function formatDateTimeLabel(date) {
+    if (!(date instanceof Date) || isNaN(date)) return '';
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const hh = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+  }
+
+  function extractICalFileDate(text) {
+    const lines = unfoldICalLines(text);
+    const stampLine = lines.find(line => line.startsWith('DTSTAMP:'));
+    if (!stampLine) return null;
+    const parsed = parseICalDateValue(stampLine.slice('DTSTAMP:'.length));
+    return parsed && parsed.date ? parsed.date : null;
+  }
+
+  function parseICalFeed(text, sourceName) {
+    const events = [];
+    const lines = unfoldICalLines(text);
+    let currentEvent = null;
+
+    lines.forEach(line => {
+      if (line === 'BEGIN:VEVENT') {
+        currentEvent = {};
+        return;
+      }
+      if (line === 'END:VEVENT') {
+        if (currentEvent) events.push(currentEvent);
+        currentEvent = null;
+        return;
+      }
+      if (!currentEvent) return;
+
+      const colonIndex = line.indexOf(':');
+      if (colonIndex === -1) return;
+      const rawKey = line.slice(0, colonIndex);
+      const value = decodeICalText(line.slice(colonIndex + 1));
+      const key = rawKey.split(';')[0].toUpperCase();
+      currentEvent[key] = value;
+    });
+
+    return events.map(event => {
+      const start = parseICalDateValue(event.DTSTART);
+      const end = parseICalDateValue(event.DTEND);
+      if (!start || !end || !start.date || !end.date) return null;
+
+      const nights = diffDays(start.date, end.date);
+      if (nights <= 0) return null;
+      const status = inferStatus(event);
+      const isBlocked = isBlockedStatus(status);
+
+      const checkinHour = start.allDay ? DEFAULT_CHECKIN_HOUR : start.hour;
+      const checkinMinute = start.allDay ? 0 : start.minute;
+      const checkoutAtMidnight = end.hour === 0 && end.minute === 0;
+      const checkoutHour = (end.allDay || checkoutAtMidnight) ? DEFAULT_CHECKOUT_HOUR : end.hour;
+      const checkoutMinute = (end.allDay || checkoutAtMidnight) ? 0 : end.minute;
+
+      return {
+        Logement: sourceName || decodeICalText(event.LOCATION) || 'Logement Airbnb',
+        'Check-in': formatDateValue(start.date, checkinHour, checkinMinute),
+        'Check-out': formatDateValue(end.date, checkoutHour, checkoutMinute),
+        Nuits: isBlocked ? '' : String(nights),
+        Statut: status,
+        _checkoutExclusive: (end.allDay || checkoutAtMidnight) ? '1' : ''
+      };
+    }).filter(Boolean);
   }
 
   const MOIS_FR = {
@@ -675,6 +834,10 @@
 
   function parseFrenchDate(str) {
     if (!str) return null;
+    const compactMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (compactMatch) {
+      return new Date(parseInt(compactMatch[1]), parseInt(compactMatch[2]) - 1, parseInt(compactMatch[3]));
+    }
     // Format: "16/03/2026 15:00:00" ou "16/03/2026"
     const slashMatch = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (slashMatch) {
@@ -696,6 +859,14 @@
     return m ? parseInt(m[1]) + parseInt(m[2]) / 60 : 0;
   }
 
+  function buildDateTime(date, timeStr) {
+    if (!date) return null;
+    const m = (timeStr || '').match(/(\d{1,2}):(\d{2})/);
+    const hour = m ? parseInt(m[1]) : 0;
+    const minute = m ? parseInt(m[2]) : 0;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute, 0, 0);
+  }
+
   function formatDate(str) {
     if (!str) return '—';
     const d = parseFrenchDate(str);
@@ -711,6 +882,11 @@
     return 'status-badge status-' + (s || '').replace(/\s+/g, '.');
   }
 
+  function isBlockedStatus(status) {
+    const normalized = (status || '').toLowerCase();
+    return normalized.includes('bloqu') || normalized.includes('blocked') || normalized.includes('indisponible') || normalized.includes('not available');
+  }
+
   function renderTable(data) {
     const container = document.getElementById('resa-body');
     const table = document.getElementById('resa-table');
@@ -720,7 +896,7 @@
     if (!data.length) {
       table.style.display = 'none';
       empty.style.display = 'block';
-      document.getElementById('footer-count').textContent = '0 réservation';
+      document.getElementById('footer-count').textContent = '0 élément';
       return;
     }
 
@@ -731,8 +907,9 @@
       const checkin  = formatDate(r['Check-in'] || r['check-in']);
       const checkout = formatDate(r['Check-out'] || r['check-out']);
       const name     = r['Logement'] || r['logement'] || '—';
-      const nights   = r['Nuits'] || r['nuits'] || '—';
       const status   = r['Statut'] || r['statut'] || '—';
+      const isBlocked = isBlockedStatus(status);
+      const nights   = r['Nuits'] || r['nuits'] || '—';
       const ciDate   = parseFrenchDate(r['Check-in'] || r['check-in']);
       const coDate   = parseFrenchDate(r['Check-out'] || r['check-out']);
       const today    = new Date(); today.setHours(0,0,0,0);
@@ -744,27 +921,28 @@
           <span class="property-dot"></span>
           <div class="property-info">
             <span class="property-name">${name}</span>
-            <div class="property-dates">
+            ${isBlocked ? '' : `<div class="property-dates">
                 <span class="${ciPast}"><span class="arrow-in">↓</span> ${checkin}</span>
                 <span class="${coPast}"><span class="arrow-out">↑</span> ${checkout}</span>
-              </div>
+              </div>`}
           </div>
         </div>
-        <span class="nights-badge">🌙 ${nights}</span>
+        ${isBlocked ? '' : `<span class="nights-badge">🌙 ${nights}</span>`}
         <span class="${statusClass(status)}">${status}</span>
       </div>`;
     }).join('');
 
     document.getElementById('footer-count').textContent =
-      `${data.length} réservation${data.length > 1 ? 's' : ''} affichée${data.length > 1 ? 's' : ''}`;
+      `${data.length} élément${data.length > 1 ? 's' : ''} affiché${data.length > 1 ? 's' : ''}`;
   }
 
   function getFilteredData() {
     const showPast = document.getElementById('show-past').checked;
-    if (showPast) return allData;
+    const visibleData = allData.filter(r => !isBlockedStatus(r['Statut'] || r['statut'] || ''));
+    if (showPast) return visibleData;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return allData.filter(r => {
+    return visibleData.filter(r => {
       const checkout = parseFrenchDate(r['Check-out'] || r['check-out']);
       return !checkout || checkout >= today;
     });
@@ -783,9 +961,8 @@
     document.getElementById('stat-nights').textContent = nights;
   }
 
-  async function fetchCSV() {
-    const bustCache = '&_t=' + Date.now();
-    const urlNoCache = CSV_URL + bustCache;
+  async function fetchRemoteText(url) {
+    const bustCache = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
     const isFileProtocol = window.location.protocol === 'file:';
 
     // Essai direct (fonctionne sur GitHub Pages / localhost, pas en file://)
@@ -793,7 +970,7 @@
       try {
         const ctrl = new AbortController();
         setTimeout(() => ctrl.abort(), 5000);
-        const res = await fetch(urlNoCache, { signal: ctrl.signal, cache: 'no-store' });
+        const res = await fetch(bustCache, { signal: ctrl.signal, cache: 'no-store' });
         if (res.ok) return await res.text();
       } catch (_) {}
     }
@@ -808,11 +985,11 @@
       try {
         const ctrl = new AbortController();
         setTimeout(() => ctrl.abort(), 8000);
-        const res = await fetch(makeUrl(urlNoCache), { signal: ctrl.signal, cache: 'no-store' });
+        const res = await fetch(makeUrl(bustCache), { signal: ctrl.signal, cache: 'no-store' });
         if (res.ok) return await res.text();
       } catch (_) {}
     }
-    throw new Error('Impossible de joindre Google Sheets');
+    throw new Error('Impossible de joindre le flux iCal');
   }
 
   function showLoadingOverlay(show) {
@@ -828,6 +1005,9 @@
     const errBox  = document.getElementById('error-state');
     const table   = document.getElementById('resa-table');
     const empty   = document.getElementById('empty-state');
+    const sources = getConfiguredSources();
+
+    updateConfigBanner();
 
     showLoadingOverlay(true);
     if (allData.length === 0) {
@@ -837,8 +1017,32 @@
     if (allData.length === 0) { table.style.display = 'none'; empty.style.display = 'none'; }
 
     try {
-      const text = await fetchCSV();
-      allData = parseCSV(text);
+      if (!sources.length) {
+        throw new Error('Aucun lien iCal Airbnb configuré');
+      }
+
+      const datasets = await Promise.all(
+        sources.map(async source => {
+          const text = await fetchRemoteText(source.url);
+          return {
+            name: source.name,
+            fileDate: extractICalFileDate(text),
+            rows: parseICalFeed(text, source.name)
+          };
+        })
+      );
+      sourceFileDates = datasets.map(dataset => ({
+        name: dataset.name,
+        label: dataset.fileDate ? formatDateTimeLabel(dataset.fileDate) : 'date inconnue'
+      }));
+      allData = datasets
+        .flatMap(dataset => dataset.rows)
+        .sort((a, b) => {
+          const dateA = parseFrenchDate(a['Check-in']);
+          const dateB = parseFrenchDate(b['Check-in']);
+          return (dateA ? dateA.getTime() : 0) - (dateB ? dateB.getTime() : 0);
+        });
+
       loading.style.display = 'none';
       showLoadingOverlay(false);
       applyFilter();
@@ -959,16 +1163,25 @@
       const co = parseFrenchDate(coStr);
       const ciHour = parseHour(ciStr);
       const coHour = parseHour(coStr);
+      const startAt = buildDateTime(ci, ciStr);
+      const endAt = buildDateTime(co, coStr);
+      const checkoutExclusive = (r._checkoutExclusive || r['checkoutExclusive'] || '') === '1';
+      const visibleUntil = co
+        ? ((checkoutExclusive && coHour === 0)
+          ? new Date(co.getFullYear(), co.getMonth(), co.getDate() - 1)
+          : new Date(co.getFullYear(), co.getMonth(), co.getDate()))
+        : null;
       const name = r['Logement'] || r['logement'] || '—';
       const nights = r['Nuits'] || r['nuits'] || '';
       const statut = r['Statut'] || r['statut'] || '';
+      const isBlocked = isBlockedStatus(statut);
       const menage = r['menage'] || r['Menage'] || '';
       const ciFormatted = formatDate(ciStr);
       const coFormatted = formatDate(coStr);
       const ciTime = ciStr && ciStr.match(/(\d{1,2}:\d{2})/) ? ciStr.match(/(\d{1,2}:\d{2})/)[1] : '';
       const coTime = coStr && coStr.match(/(\d{1,2}:\d{2})/) ? coStr.match(/(\d{1,2}:\d{2})/)[1] : '';
-      return { name, ci, co, ciHour, coHour, nights, statut, menage, ciFormatted, coFormatted, ciTime, coTime, color: propertyColors[name] || 0 };
-    }).filter(r => r.ci && r.co);
+      return { name, ci, co, startAt, endAt, visibleUntil, ciHour, coHour, nights, statut, isBlocked, menage, ciFormatted, coFormatted, ciTime, coTime, checkoutExclusive, color: propertyColors[name] || 0 };
+    }).filter(r => r.ci && r.co && r.startAt && r.endAt && r.visibleUntil && r.endAt > r.startAt);
 
     // Construire les dates de chaque cellule
     const cellDates = [];
@@ -978,25 +1191,21 @@
 
     // Assigner un slot vertical par réservation (éviter chevauchements)
     const resaSlots = new Map();
-    const cellSlotUsed = cellDates.map(() => new Set());
-    reservations.forEach((resa, ri) => {
+    const reservationsByStart = reservations
+      .map((resa, ri) => ({ resa, ri }))
+      .sort((a, b) => a.resa.startAt - b.resa.startAt);
+    const slotIntervals = [];
+    reservationsByStart.forEach(({ resa, ri }) => {
       let slot = 0;
       while (true) {
-        let free = true;
-        for (let ci = 0; ci < cellDates.length; ci++) {
-          if (cellDates[ci] >= resa.ci && cellDates[ci] <= resa.co) {
-            if (cellSlotUsed[ci].has(slot)) { free = false; break; }
-          }
-        }
-        if (free) break;
+        const intervals = slotIntervals[slot] || [];
+        const overlaps = intervals.some(other => resa.startAt < other.endAt && resa.endAt > other.startAt);
+        if (!overlaps) break;
         slot++;
       }
       resaSlots.set(ri, slot);
-      for (let ci = 0; ci < cellDates.length; ci++) {
-        if (cellDates[ci] >= resa.ci && cellDates[ci] <= resa.co) {
-          cellSlotUsed[ci].add(slot);
-        }
-      }
+      if (!slotIntervals[slot]) slotIntervals[slot] = [];
+      slotIntervals[slot].push({ startAt: resa.startAt, endAt: resa.endAt });
     });
 
     // Hauteurs pour le positionnement des barres
@@ -1011,9 +1220,14 @@
     for (let w = 0; w < numWeeks; w++) {
       // Trouver le max slot pour cette semaine (pour la hauteur min)
       let maxSlot = -1;
-      for (let col = 0; col < 7; col++) {
-        cellSlotUsed[w * 7 + col].forEach(s => { if (s > maxSlot) maxSlot = s; });
-      }
+      const weekStart = cellDates[w * 7];
+      const weekEnd = new Date(cellDates[w * 7 + 6].getFullYear(), cellDates[w * 7 + 6].getMonth(), cellDates[w * 7 + 6].getDate(), 23, 59, 59, 999);
+      reservations.forEach((resa, ri) => {
+        if (resa.startAt <= weekEnd && resa.endAt > weekStart) {
+          const slot = resaSlots.get(ri);
+          if (typeof slot === 'number' && slot > maxSlot) maxSlot = slot;
+        }
+      });
       const weekMinH = dayNumH + (maxSlot + 1) * barH + 8;
 
       // Cellules de la semaine
@@ -1036,7 +1250,7 @@
         let startCol = -1, endCol = -1;
         for (let col = 0; col < 7; col++) {
           const d = cellDates[w * 7 + col];
-          if (d >= resa.ci && d <= resa.co) {
+          if (d >= resa.ci && d <= resa.visibleUntil) {
             if (startCol === -1) startCol = col;
             endCol = col;
           }
@@ -1073,9 +1287,9 @@
         const slot = resaSlots.get(ri);
         const top = dayNumH + slot * barH;
         const showLabel = isCheckinDay || startCol === 0;
-        const label = showLabel && resa.nights ? `🌙 ${resa.nights}n` : '';
+        const label = showLabel && !resa.isBlocked ? (resa.nights ? `🌙 ${resa.nights}n` : '') : '';
 
-        html += `<div class="cal-bar cal-color-${resa.color}" data-ri="${ri}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%;top:${top}px;border-radius:${br}" title="${resa.name} — ${resa.nights} nuits">${label}</div>`;
+        html += `<div class="cal-bar cal-color-${resa.color}" data-ri="${ri}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%;top:${top}px;border-radius:${br}" title="${resa.name} — ${resa.isBlocked ? 'Indisponible' : resa.nights + ' nuits'}">${label}</div>`;
       });
 
       html += '</div>';
@@ -1086,9 +1300,13 @@
     // Légende
     const legendEl = document.getElementById('calendar-legend');
     const colorBgs = ['#1e40af','#9d174d','#065f46','#92400e','#3730a3','#9f1239','#134e4a','#6b21a8'];
-    legendEl.innerHTML = Object.entries(propertyColors).map(([name, ci]) =>
+    const propertyLegend = Object.entries(propertyColors).map(([name, ci]) =>
       `<div class="calendar-legend-item"><span class="calendar-legend-dot" style="background:${colorBgs[ci]}"></span>${name}</div>`
     ).join('');
+    const fileDateLegend = sourceFileDates.length
+      ? `<div class="calendar-legend-item calendar-legend-meta">${sourceFileDates.map(source => `${source.name} : ${source.label}`).join(' • ')}</div>`
+      : '';
+    legendEl.innerHTML = propertyLegend + fileDateLegend;
 
     // Stocker les réservations pour le popup
     window._calResas = reservations;
@@ -1122,18 +1340,15 @@
           <span class="cal-popup-color" style="background:${bgColor}"></span>${r.name}
         </div>
         <div class="cal-popup-rows">
-          <div class="cal-popup-row">
+          ${r.isBlocked ? '' : `<div class="cal-popup-row">
             <span class="label">Check-in</span>
             <span>↓ ${r.ciFormatted}${r.ciTime ? ' à ' + r.ciTime : ''}</span>
           </div>
           <div class="cal-popup-row">
             <span class="label">Check-out</span>
             <span>↑ ${r.coFormatted}${r.coTime ? ' à ' + r.coTime : ''}</span>
-          </div>
-          <div class="cal-popup-row">
-            <span class="label">Nuits</span>
-            <span>🌙 ${r.nights}</span>
-          </div>
+          </div>`}
+          ${r.isBlocked ? '' : `<div class="cal-popup-row"><span class="label">Nuits</span><span>🌙 ${r.nights}</span></div>`}
           <div class="cal-popup-row">
             <span class="label">Statut</span>
             <span>${r.statut || '—'}</span>
@@ -1147,6 +1362,7 @@
     document.querySelectorAll('.cal-popup-overlay').forEach(el => el.remove());
   }
 
+  updateConfigBanner();
   loadData();
   // Auto-refresh toutes les 5 minutes
   setInterval(loadData, 5 * 60 * 1000);
