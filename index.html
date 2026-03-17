@@ -284,7 +284,6 @@
       overflow: hidden;
       box-shadow: 0 2px 20px rgba(26,26,46,.07);
       border: 1px solid #ede9e4;
-      display: none;
     }
     .calendar-header {
       display: flex;
@@ -619,12 +618,12 @@
       Afficher les réservations passées
     </label>
     <div class="view-toggle">
-      <button class="active" id="btn-list" onclick="setView('list')">☰ Liste</button>
-      <button id="btn-calendar" onclick="setView('calendar')">📅 Calendrier</button>
+      <button id="btn-list" onclick="setView('list')">☰ Liste</button>
+      <button class="active" id="btn-calendar" onclick="setView('calendar')">📅 Calendrier</button>
     </div>
   </div>
 
-  <div class="table-wrap">
+  <div class="table-wrap" style="display:none">
     <div class="state-box" id="loading-state">
       <div class="icon">⏳</div>
       <p>Chargement des réservations…</p>
@@ -896,7 +895,7 @@
   // ══════════════════════════════════════════
   //  Vue : Liste / Calendrier
   // ══════════════════════════════════════════
-  let currentView = 'list';
+  let currentView = 'calendar';
   let calendarDate = new Date();
 
   function setView(view) {
