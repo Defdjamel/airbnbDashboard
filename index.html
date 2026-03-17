@@ -964,35 +964,43 @@
     document.getElementById('stat-nights').textContent = nights;
   }
 
+  async function fetchTextWithTimeout(url, timeoutMs) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function fetchRemoteText(url) {
     const bustCache = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
     const isFileProtocol = window.location.protocol === 'file:';
 
-    // Essai direct (fonctionne sur GitHub Pages / localhost, pas en file://)
+    const candidates = [];
     if (!isFileProtocol) {
-      try {
-        const ctrl = new AbortController();
-        setTimeout(() => ctrl.abort(), 5000);
-        const res = await fetch(bustCache, { signal: ctrl.signal, cache: 'no-store' });
-        if (res.ok) return await res.text();
-      } catch (_) {}
+      candidates.push({ url: bustCache, timeoutMs: 3000 });
     }
 
-    // Fallback via proxy CORS (nécessaire en file://)
     const proxies = [
-      url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
       url => 'https://corsproxy.io/?' + encodeURIComponent(url),
-      url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url)
+      url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+      url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
     ];
-    for (const makeUrl of proxies) {
-      try {
-        const ctrl = new AbortController();
-        setTimeout(() => ctrl.abort(), 8000);
-        const res = await fetch(makeUrl(bustCache), { signal: ctrl.signal, cache: 'no-store' });
-        if (res.ok) return await res.text();
-      } catch (_) {}
+    proxies.forEach(makeUrl => {
+      candidates.push({ url: makeUrl(bustCache), timeoutMs: 4500 });
+    });
+
+    try {
+      return await Promise.any(
+        candidates.map(candidate => fetchTextWithTimeout(candidate.url, candidate.timeoutMs))
+      );
+    } catch (_) {
+      throw new Error('Impossible de joindre le flux iCal');
     }
-    throw new Error('Impossible de joindre le flux iCal');
   }
 
   function showLoadingOverlay(show) {
