@@ -138,6 +138,7 @@
       overflow: hidden;
       box-shadow: 0 2px 20px rgba(26,26,46,.07);
       border: 1px solid #ede9e4;
+      position: relative;
     }
 
     table { width: 100%; border-collapse: collapse; }
@@ -217,6 +218,168 @@
     .status-Annulée, .status-Cancelled   { background: var(--cancelled-bg); color: var(--cancelled); }
     .status-Terminée, .status-Completed  { background: var(--done-bg); color: var(--done); }
 
+    /* ── View toggle ── */
+    .view-toggle {
+      display: inline-flex;
+      background: #fff;
+      border: 1px solid #ede9e4;
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .view-toggle button {
+      border: none;
+      background: none;
+      padding: 8px 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--stone);
+      transition: all .18s;
+    }
+    .view-toggle button.active {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    /* ── Calendar ── */
+    .calendar-wrap {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 20px rgba(26,26,46,.07);
+      border: 1px solid #ede9e4;
+      display: none;
+    }
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid #f3f0ec;
+    }
+    .calendar-header h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--ink);
+      text-transform: capitalize;
+    }
+    .calendar-nav {
+      border: none;
+      background: var(--mist);
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .18s;
+    }
+    .calendar-nav:hover { background: var(--coral-soft); color: var(--coral); }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      overflow: hidden;
+    }
+    .calendar-day-name {
+      padding: 10px 4px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--stone);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      border-bottom: 1px solid #f3f0ec;
+    }
+    .calendar-day-name:last-of-type { border-right: none; }
+    .calendar-cell {
+      min-height: 80px;
+      border-right: 1px solid #f3f0ec;
+      border-bottom: 1px solid #f3f0ec;
+      padding: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    .calendar-cell.dow-6 { border-right: none; }
+    .calendar-cell.other-month { background: #faf9f7; }
+    .calendar-cell.today { background: #fff5f7; }
+    .calendar-day-num {
+      font-size: 12px;
+      color: var(--stone);
+      font-weight: 500;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding-left: 2px;
+    }
+    .calendar-cell.today .calendar-day-num span {
+      background: var(--coral);
+      color: #fff;
+      border-radius: 50%;
+      width: 22px; height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .calendar-cell.other-month .calendar-day-num { opacity: .4; }
+
+    .cal-events-area {
+      position: relative;
+    }
+    .cal-event {
+      font-size: 10px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: default;
+      height: 16px;
+      line-height: 16px;
+      font-weight: 500;
+      margin-bottom: 1px;
+    }
+    .cal-event.start { border-radius: 4px 0 0 4px; margin-right: -4px; }
+    .cal-event.middle { border-radius: 0; margin-left: -4px; margin-right: -4px; }
+    .cal-event.end { border-radius: 0 4px 4px 0; margin-left: -4px; }
+    .cal-event.single { border-radius: 4px; }
+    .cal-event.start.end { border-radius: 4px; margin-left: 0; margin-right: 0; }
+    .cal-event-spacer { height: 16px; margin-bottom: 1px; }
+
+    /* ── Calendar legend ── */
+    .calendar-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 14px 24px;
+      border-top: 1px solid #f3f0ec;
+    }
+    .calendar-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--ink);
+    }
+    .calendar-legend-dot {
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .cal-color-0 { background: #dbeafe; color: #1e40af; }
+    .cal-color-1 { background: #fce7f3; color: #9d174d; }
+    .cal-color-2 { background: #d1fae5; color: #065f46; }
+    .cal-color-3 { background: #fef3c7; color: #92400e; }
+    .cal-color-4 { background: #e0e7ff; color: #3730a3; }
+    .cal-color-5 { background: #ffe4e6; color: #9f1239; }
+    .cal-color-6 { background: #ccfbf1; color: #134e4a; }
+    .cal-color-7 { background: #f3e8ff; color: #6b21a8; }
+
     /* ── Empty / Loading ── */
     .state-box {
       text-align: center;
@@ -226,6 +389,25 @@
     .state-box .icon { font-size: 48px; margin-bottom: 16px; }
     .state-box p { font-size: 15px; }
     .state-box small { font-size: 12px; opacity: .6; display: block; margin-top: 8px; }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: 16px;
+    }
+    .loading-spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--coral-soft);
+      border-top-color: var(--coral);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Config banner ── */
     .config-banner {
@@ -270,9 +452,41 @@
 
     @media (max-width: 700px) {
       header { padding: 32px 20px 28px; }
-      .stats-inner, main { padding-left: 16px; padding-right: 16px; }
+      .stats-inner, main { padding-left: 8px; padding-right: 8px; }
       th, td { padding: 12px 12px; }
       .stat-num { font-size: 22px; }
+
+      .calendar-wrap { border-radius: 10px; }
+      .calendar-header { padding: 12px 12px; }
+      .calendar-header h2 { font-size: 16px; }
+      .calendar-day-name { padding: 6px 2px; font-size: 10px; letter-spacing: 0; }
+      .calendar-cell {
+        min-height: 52px;
+        padding: 2px;
+      }
+      .calendar-day-num {
+        font-size: 10px;
+        height: 18px;
+        padding-left: 1px;
+      }
+      .calendar-cell.today .calendar-day-num span {
+        width: 18px; height: 18px;
+        font-size: 10px;
+      }
+      .cal-event {
+        font-size: 8px;
+        padding: 1px 2px;
+        height: 13px;
+        line-height: 13px;
+        margin-bottom: 1px;
+      }
+      .cal-event-spacer { height: 13px; }
+      .cal-event.start { margin-right: -2px; }
+      .cal-event.middle { margin-left: -2px; margin-right: -2px; }
+      .cal-event.end { margin-left: -2px; }
+      .calendar-legend { padding: 10px 12px; gap: 8px; }
+      .calendar-legend-item { font-size: 11px; }
+      .calendar-legend-dot { width: 10px; height: 10px; }
     }
   </style>
 </head>
@@ -306,11 +520,15 @@
     ⚙️ <strong>Configuration requise :</strong> Remplace <code>TON_SHEET_ID</code> dans ce fichier par l'ID de ton Google Sheet, et assure-toi que le sheet est partagé en lecture publique.
   </div>
 
-  <div style="margin-bottom: 16px;">
+  <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
     <label style="font-size: 13px; color: var(--stone); cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
       <input type="checkbox" id="show-past" onchange="applyFilter()" style="accent-color: var(--coral); width: 16px; height: 16px; cursor: pointer;">
       Afficher les réservations passées
     </label>
+    <div class="view-toggle">
+      <button class="active" id="btn-list" onclick="setView('list')">☰ Liste</button>
+      <button id="btn-calendar" onclick="setView('calendar')">📅 Calendrier</button>
+    </div>
   </div>
 
   <div class="table-wrap">
@@ -331,6 +549,16 @@
       <p>Impossible de charger les données</p>
       <small id="error-msg">Vérifie l'ID du Sheet et les permissions de partage</small>
     </div>
+  </div>
+
+  <div class="calendar-wrap" id="calendar-wrap" style="position:relative;">
+    <div class="calendar-header">
+      <button class="calendar-nav" onclick="changeMonth(-1)">‹</button>
+      <h2 id="calendar-title"></h2>
+      <button class="calendar-nav" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="calendar-grid" id="calendar-grid"></div>
+    <div class="calendar-legend" id="calendar-legend"></div>
   </div>
 </main>
 
@@ -390,7 +618,12 @@
 
   function parseFrenchDate(str) {
     if (!str) return null;
-    // Format: "mardi 03 mars 2026" ou "03 mars 2026"
+    // Format: "16/03/2026 15:00:00" ou "16/03/2026"
+    const slashMatch = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (slashMatch) {
+      return new Date(parseInt(slashMatch[3]), parseInt(slashMatch[2]) - 1, parseInt(slashMatch[1]));
+    }
+    // Ancien format: "mardi 03 mars 2026"
     const m = str.match(/(\d{1,2})\s+([\wéû]+)\s+(\d{4})/);
     if (m) {
       const month = MOIS_FR[m[2].toLowerCase()];
@@ -398,6 +631,12 @@
     }
     const d = new Date(str);
     return isNaN(d) ? null : d;
+  }
+
+  function parseHour(str) {
+    if (!str) return 0;
+    const m = str.match(/(\d{1,2}):(\d{2})/);
+    return m ? parseInt(m[1]) + parseInt(m[2]) / 60 : 0;
   }
 
   function formatDate(str) {
@@ -478,6 +717,7 @@
     const filtered = getFilteredData();
     updateStats(filtered);
     renderTable(filtered);
+    if (currentView === 'calendar') renderCalendar();
   }
 
   function updateStats(data) {
@@ -493,23 +733,46 @@
   async function fetchCSV() {
     const bustCache = '&_t=' + Date.now();
     const urlNoCache = CSV_URL + bustCache;
-    // Essai direct (fonctionne sur GitHub Pages / localhost)
-    try {
-      const res = await fetch(urlNoCache, { signal: AbortSignal.timeout(5000), cache: 'no-store' });
-      if (res.ok) return await res.text();
-    } catch (_) {}
+    const isFileProtocol = window.location.protocol === 'file:';
+
+    // Essai direct (fonctionne sur GitHub Pages / localhost, pas en file://)
+    if (!isFileProtocol) {
+      try {
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 5000);
+        const res = await fetch(urlNoCache, { signal: ctrl.signal, cache: 'no-store' });
+        if (res.ok) return await res.text();
+      } catch (_) {}
+    }
+
     // Fallback via proxy CORS (nécessaire en file://)
     const proxies = [
-      'https://api.allorigins.win/raw?url=',
-      'https://corsproxy.io/?'
+      url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+      url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+      url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url)
     ];
-    for (const proxy of proxies) {
+    for (const makeUrl of proxies) {
       try {
-        const res = await fetch(proxy + encodeURIComponent(urlNoCache), { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 8000);
+        const res = await fetch(makeUrl(urlNoCache), { signal: ctrl.signal, cache: 'no-store' });
         if (res.ok) return await res.text();
       } catch (_) {}
     }
     throw new Error('Impossible de joindre Google Sheets');
+  }
+
+  function showLoadingOverlay(show) {
+    // Remove any existing overlays
+    document.querySelectorAll('.loading-overlay').forEach(el => el.remove());
+    if (!show) return;
+    const overlay = `<div class="loading-overlay"><div class="loading-spinner"></div></div>`;
+    // Add overlay to the active view
+    if (currentView === 'list') {
+      document.querySelector('.table-wrap').insertAdjacentHTML('beforeend', overlay);
+    } else {
+      document.getElementById('calendar-wrap').insertAdjacentHTML('beforeend', overlay);
+    }
   }
 
   async function loadData() {
@@ -518,24 +781,211 @@
     const table   = document.getElementById('resa-table');
     const empty   = document.getElementById('empty-state');
 
-    loading.style.display = 'block';
+    const isFirstLoad = allData.length === 0;
+    if (isFirstLoad) {
+      loading.style.display = 'block';
+    } else {
+      showLoadingOverlay(true);
+    }
     errBox.style.display  = 'none';
-    table.style.display   = 'none';
-    empty.style.display   = 'none';
+    if (isFirstLoad) { table.style.display = 'none'; empty.style.display = 'none'; }
 
     try {
       const text = await fetchCSV();
       allData = parseCSV(text);
       loading.style.display = 'none';
+      showLoadingOverlay(false);
       applyFilter();
 
       const now = new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
       document.getElementById('last-update').textContent = `Dernière mise à jour : ${now}`;
     } catch (e) {
       loading.style.display = 'none';
+      showLoadingOverlay(false);
       errBox.style.display  = 'block';
       document.getElementById('error-msg').textContent = e.message;
     }
+  }
+
+  // ══════════════════════════════════════════
+  //  Vue : Liste / Calendrier
+  // ══════════════════════════════════════════
+  let currentView = 'list';
+  let calendarDate = new Date();
+
+  function setView(view) {
+    currentView = view;
+    document.getElementById('btn-list').classList.toggle('active', view === 'list');
+    document.getElementById('btn-calendar').classList.toggle('active', view === 'calendar');
+    document.querySelector('.table-wrap').style.display = view === 'list' ? '' : 'none';
+    document.getElementById('calendar-wrap').style.display = view === 'calendar' ? 'block' : 'none';
+    if (view === 'calendar') renderCalendar();
+  }
+
+  function changeMonth(delta) {
+    calendarDate.setMonth(calendarDate.getMonth() + delta);
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const title = new Date(year, month).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    document.getElementById('calendar-title').textContent = title.charAt(0).toUpperCase() + title.slice(1);
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    // Lundi = 0 dans notre grille
+    let startDow = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = lastDay.getDate();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Construire les cellules
+    const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
+    const grid = document.getElementById('calendar-grid');
+
+    const joursFr = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    let html = joursFr.map(j => `<div class="calendar-day-name">${j}</div>`).join('');
+
+    // Préparer les données filtrées
+    const data = getFilteredData();
+
+    // Attribuer une couleur par logement
+    const propertyColors = {};
+    let colorIdx = 0;
+    data.forEach(r => {
+      const name = r['Logement'] || r['logement'] || '';
+      if (name && !(name in propertyColors)) {
+        propertyColors[name] = colorIdx % 8;
+        colorIdx++;
+      }
+    });
+
+    // Préparer les réservations avec dates parsées
+    const reservations = data.map(r => {
+      const ciStr = r['Check-in'] || r['check-in'];
+      const coStr = r['Check-out'] || r['check-out'];
+      const ci = parseFrenchDate(ciStr);
+      const co = parseFrenchDate(coStr);
+      const ciHour = parseHour(ciStr);
+      const coHour = parseHour(coStr);
+      const name = r['Logement'] || r['logement'] || '—';
+      const nights = r['Nuits'] || r['nuits'] || '';
+      return { name, ci, co, ciHour, coHour, nights, color: propertyColors[name] || 0 };
+    }).filter(r => r.ci && r.co);
+
+    // Pour chaque cellule, déterminer quelles réservations sont actives
+    // et leur position (start/middle/end)
+    const cellDates = [];
+    for (let i = 0; i < totalCells; i++) {
+      const d = new Date(year, month, 1 - startDow + i);
+      cellDates.push(d);
+    }
+
+    // Créer un slot tracker pour empiler les réservations sans chevauchement
+    // Chaque cellule a des slots; une réservation garde le même slot sur tous ses jours
+    const resaSlots = new Map(); // resa index -> slot number
+    const cellSlotUsed = cellDates.map(() => new Set());
+
+    // Assigner les slots (inclut le jour de check-out)
+    reservations.forEach((resa, ri) => {
+      let slot = 0;
+      while (true) {
+        let slotFree = true;
+        for (let ci = 0; ci < cellDates.length; ci++) {
+          const d = cellDates[ci];
+          if (d >= resa.ci && d <= resa.co) {
+            if (cellSlotUsed[ci].has(slot)) { slotFree = false; break; }
+          }
+        }
+        if (slotFree) break;
+        slot++;
+      }
+      resaSlots.set(ri, slot);
+      for (let ci = 0; ci < cellDates.length; ci++) {
+        const d = cellDates[ci];
+        if (d >= resa.ci && d <= resa.co) {
+          cellSlotUsed[ci].add(slot);
+        }
+      }
+    });
+
+    for (let i = 0; i < totalCells; i++) {
+      const d = cellDates[i];
+      const isOther = d.getMonth() !== month;
+      const isToday = d.getTime() === today.getTime();
+      let classes = 'calendar-cell';
+      if (i % 7 === 6) classes += ' dow-6';
+      if (isOther) classes += ' other-month';
+      if (isToday) classes += ' today';
+
+      // Trouver les réservations pour ce jour (inclut le checkout day)
+      const dayEvents = [];
+      reservations.forEach((resa, ri) => {
+        if (d >= resa.ci && d <= resa.co) {
+          const isCheckinDay = d.getTime() === resa.ci.getTime();
+          const isCheckoutDay = d.getTime() === resa.co.getTime();
+          const isDow0 = i % 7 === 0;
+          const isDow6 = i % 7 === 6;
+
+          // Déterminer la position du segment
+          let pos = 'middle';
+          if (isCheckinDay && isCheckoutDay) pos = 'single';
+          else if (isCheckoutDay) pos = 'end';
+          else if (isCheckinDay && isDow6) pos = 'single';
+          else if (isCheckinDay) pos = 'start';
+          else if (isDow6) pos = 'end';
+          else if (isDow0) pos = 'start';
+
+          // Marges basées sur l'heure (% de la cellule)
+          let marginLeft = 0, marginRight = 0;
+          if (isCheckinDay) marginLeft = Math.round(resa.ciHour / 24 * 100);
+          if (isCheckoutDay) marginRight = Math.round((24 - resa.coHour) / 24 * 100);
+
+          const showName = isCheckinDay || isDow0;
+          dayEvents.push({ ...resa, pos, showName, marginLeft, marginRight, slot: resaSlots.get(ri) });
+        }
+      });
+
+      // Trier par slot
+      dayEvents.sort((a, b) => a.slot - b.slot);
+
+      // Générer les events HTML avec des spacers pour les slots vides
+      let eventsHtml = '';
+      if (dayEvents.length > 0) {
+        const maxSlot = Math.max(...dayEvents.map(e => e.slot));
+        const slotMap = {};
+        dayEvents.forEach(e => { slotMap[e.slot] = e; });
+        for (let s = 0; s <= maxSlot; s++) {
+          if (slotMap[s]) {
+            const e = slotMap[s];
+            const label = e.showName && e.nights ? `${e.nights}n` : '&nbsp;';
+            let style = '';
+            if (e.marginLeft) style += `margin-left:${e.marginLeft}%;`;
+            if (e.marginRight) style += `margin-right:${e.marginRight}%;`;
+            eventsHtml += `<div class="cal-event cal-color-${e.color} ${e.pos}" style="${style}" title="${e.name} — ${e.nights} nuits">${label}</div>`;
+          } else {
+            eventsHtml += `<div class="cal-event-spacer"></div>`;
+          }
+        }
+      }
+
+      html += `<div class="${classes}">
+        <div class="calendar-day-num"><span>${d.getDate()}</span></div>
+        <div class="cal-events-area">${eventsHtml}</div>
+      </div>`;
+    }
+
+    grid.innerHTML = html;
+
+    // Légende
+    const legendEl = document.getElementById('calendar-legend');
+    const colorBgs = ['#dbeafe','#fce7f3','#d1fae5','#fef3c7','#e0e7ff','#ffe4e6','#ccfbf1','#f3e8ff'];
+    legendEl.innerHTML = Object.entries(propertyColors).map(([name, ci]) =>
+      `<div class="calendar-legend-item"><span class="calendar-legend-dot" style="background:${colorBgs[ci]}"></span>${name}</div>`
+    ).join('');
   }
 
   loadData();
