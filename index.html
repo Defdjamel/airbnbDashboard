@@ -138,19 +138,33 @@
     }
 
     /* ── View transitions ── */
-    .view-fade-in {
-      animation: viewIn .35s ease both;
+    .view-slide-in-left {
+      animation: viewSlideInLeft .3s ease both;
     }
-    .view-fade-out {
-      animation: viewOut .2s ease both;
+    .view-slide-out-left {
+      animation: viewSlideOutLeft .25s ease both;
     }
-    @keyframes viewIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .view-slide-in-right {
+      animation: viewSlideInRight .3s ease both;
     }
-    @keyframes viewOut {
-      from { opacity: 1; transform: translateY(0); }
-      to   { opacity: 0; transform: translateY(-12px); }
+    .view-slide-out-right {
+      animation: viewSlideOutRight .25s ease both;
+    }
+    @keyframes viewSlideInLeft {
+      from { opacity: 0; transform: translateX(-60px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes viewSlideOutLeft {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(-60px); }
+    }
+    @keyframes viewSlideInRight {
+      from { opacity: 0; transform: translateX(60px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes viewSlideOutRight {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(60px); }
     }
     .cal-slide-left {
       animation: slideLeft .3s ease both;
@@ -909,19 +923,22 @@
     document.getElementById('btn-list').classList.toggle('active', view === 'list');
     document.getElementById('btn-calendar').classList.toggle('active', view === 'calendar');
 
-    // Animate out
-    outEl.classList.remove('view-fade-in');
-    outEl.classList.add('view-fade-out');
+    // Liste à gauche, calendrier à droite
+    const goingLeft = view === 'list';
+    const outAnim = goingLeft ? 'view-slide-out-right' : 'view-slide-out-left';
+    const inAnim = goingLeft ? 'view-slide-in-left' : 'view-slide-in-right';
+
+    outEl.classList.remove('view-slide-in-left', 'view-slide-in-right');
+    outEl.classList.add(outAnim);
     setTimeout(() => {
       outEl.style.display = 'none';
-      outEl.classList.remove('view-fade-out');
-      // Animate in
+      outEl.classList.remove(outAnim);
       if (view === 'calendar') renderCalendar();
       inEl.style.display = 'block';
-      inEl.classList.remove('view-fade-in');
-      void inEl.offsetWidth; // force reflow
-      inEl.classList.add('view-fade-in');
-    }, 200);
+      inEl.classList.remove('view-slide-in-left', 'view-slide-in-right');
+      void inEl.offsetWidth;
+      inEl.classList.add(inAnim);
+    }, 250);
   }
 
   function changeMonth(delta) {
