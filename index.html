@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Réservations Airbnb</title>
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -129,6 +135,36 @@
       max-width: 1100px;
       margin: 0 auto;
       padding: 40px 40px 80px;
+    }
+
+    /* ── View transitions ── */
+    .view-fade-in {
+      animation: viewIn .35s ease both;
+    }
+    .view-fade-out {
+      animation: viewOut .2s ease both;
+    }
+    @keyframes viewIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes viewOut {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-12px); }
+    }
+    .cal-slide-left {
+      animation: slideLeft .3s ease both;
+    }
+    .cal-slide-right {
+      animation: slideRight .3s ease both;
+    }
+    @keyframes slideLeft {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideRight {
+      from { opacity: 0; transform: translateX(-40px); }
+      to   { opacity: 1; transform: translateX(0); }
     }
 
     /* ── Table / Cards ── */
@@ -791,18 +827,60 @@
   let calendarDate = new Date();
 
   function setView(view) {
+    if (view === currentView) return;
+    const listEl = document.querySelector('.table-wrap');
+    const calEl = document.getElementById('calendar-wrap');
+    const outEl = view === 'list' ? calEl : listEl;
+    const inEl = view === 'list' ? listEl : calEl;
+
     currentView = view;
     document.getElementById('btn-list').classList.toggle('active', view === 'list');
     document.getElementById('btn-calendar').classList.toggle('active', view === 'calendar');
-    document.querySelector('.table-wrap').style.display = view === 'list' ? '' : 'none';
-    document.getElementById('calendar-wrap').style.display = view === 'calendar' ? 'block' : 'none';
-    if (view === 'calendar') renderCalendar();
+
+    // Animate out
+    outEl.classList.remove('view-fade-in');
+    outEl.classList.add('view-fade-out');
+    setTimeout(() => {
+      outEl.style.display = 'none';
+      outEl.classList.remove('view-fade-out');
+      // Animate in
+      if (view === 'calendar') renderCalendar();
+      inEl.style.display = 'block';
+      inEl.classList.remove('view-fade-in');
+      void inEl.offsetWidth; // force reflow
+      inEl.classList.add('view-fade-in');
+    }, 200);
   }
 
   function changeMonth(delta) {
     calendarDate.setMonth(calendarDate.getMonth() + delta);
+    const grid = document.getElementById('calendar-grid');
+    grid.classList.remove('cal-slide-left', 'cal-slide-right');
+    void grid.offsetWidth;
+    grid.classList.add(delta > 0 ? 'cal-slide-left' : 'cal-slide-right');
     renderCalendar();
   }
+
+  // Swipe gauche/droite pour changer de mois
+  (function initSwipe() {
+    let startX = 0, startY = 0, tracking = false;
+    const el = document.getElementById('calendar-wrap');
+    el.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+    el.addEventListener('touchend', e => {
+      if (!tracking) return;
+      tracking = false;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      // Swipe horizontal seulement si mouvement > 60px et plus horizontal que vertical
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        changeMonth(dx < 0 ? 1 : -1);
+      }
+    }, { passive: true });
+  })();
 
   function renderCalendar() {
     const year = calendarDate.getFullYear();
@@ -976,6 +1054,11 @@
   loadData();
   // Auto-refresh toutes les 5 minutes
   setInterval(loadData, 5 * 60 * 1000);
+
+  // PWA — enregistrement du Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
 </script>
 </body>
 </html>

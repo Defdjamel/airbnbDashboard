@@ -1,0 +1,14 @@
+{
+  "name": "Réservations Airbnb",
+  "short_name": "Réservations",
+  "description": "Tableau de bord des réservations Airbnb",
+  "start_url": "/airbnbDashboard/",
+  "scope": "/airbnbDashboard/",
+  "display": "standalone",
+  "background_color": "#faf8f5",
+  "theme_color": "#1a1a2e",
+  "orientation": "any",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
