@@ -287,7 +287,7 @@
     .calendar-day-name {
       padding: 10px 4px;
       text-align: center;
-      font-size: 11px;
+      font-size: 17px;
       font-weight: 500;
       color: var(--stone);
       text-transform: uppercase;
@@ -301,16 +301,15 @@
       border-bottom: 1px solid #f3f0ec;
       padding: 4px;
       position: relative;
-      overflow: hidden;
     }
     .calendar-cell.dow-6 { border-right: none; }
     .calendar-cell.other-month { background: #faf9f7; }
     .calendar-cell.today { background: #fff5f7; }
     .calendar-day-num {
-      font-size: 12px;
+      font-size: 17px;
       color: var(--stone);
       font-weight: 500;
-      height: 24px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: flex-start;
@@ -329,26 +328,27 @@
 
     .cal-events-area {
       position: relative;
+      z-index: 1;
     }
     .cal-event {
-      font-size: 10px;
-      padding: 2px 4px;
-      border-radius: 4px;
+      font-size: 17px;
+      padding: 2px 5px;
+      border-radius: 5px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       cursor: default;
-      height: 16px;
-      line-height: 16px;
-      font-weight: 500;
-      margin-bottom: 1px;
+      height: 32px;
+      line-height: 32px;
+      font-weight: 600;
+      margin-bottom: 2px;
     }
-    .cal-event.start { border-radius: 4px 0 0 4px; margin-right: -4px; }
-    .cal-event.middle { border-radius: 0; margin-left: -4px; margin-right: -4px; }
-    .cal-event.end { border-radius: 0 4px 4px 0; margin-left: -4px; }
-    .cal-event.single { border-radius: 4px; }
-    .cal-event.start.end { border-radius: 4px; margin-left: 0; margin-right: 0; }
-    .cal-event-spacer { height: 16px; margin-bottom: 1px; }
+    .cal-event.start { border-radius: 5px 0 0 5px; margin-right: -5px; padding-right: 5px; }
+    .cal-event.middle { border-radius: 0; margin-left: -5px; margin-right: -5px; padding-left: 5px; padding-right: 5px; }
+    .cal-event.end { border-radius: 0 5px 5px 0; margin-left: -5px; padding-left: 5px; }
+    .cal-event.single { border-radius: 5px; }
+    .cal-event.start.end { border-radius: 5px; margin: 0; padding: 2px 5px; }
+    .cal-event-spacer { height: 32px; margin-bottom: 2px; }
 
     /* ── Calendar legend ── */
     .calendar-legend {
@@ -371,14 +371,14 @@
       flex-shrink: 0;
     }
 
-    .cal-color-0 { background: #dbeafe; color: #1e40af; }
-    .cal-color-1 { background: #fce7f3; color: #9d174d; }
-    .cal-color-2 { background: #d1fae5; color: #065f46; }
-    .cal-color-3 { background: #fef3c7; color: #92400e; }
-    .cal-color-4 { background: #e0e7ff; color: #3730a3; }
-    .cal-color-5 { background: #ffe4e6; color: #9f1239; }
-    .cal-color-6 { background: #ccfbf1; color: #134e4a; }
-    .cal-color-7 { background: #f3e8ff; color: #6b21a8; }
+    .cal-color-0 { background: #1e40af; color: #fff; }
+    .cal-color-1 { background: #9d174d; color: #fff; }
+    .cal-color-2 { background: #065f46; color: #fff; }
+    .cal-color-3 { background: #92400e; color: #fff; }
+    .cal-color-4 { background: #3730a3; color: #fff; }
+    .cal-color-5 { background: #9f1239; color: #fff; }
+    .cal-color-6 { background: #134e4a; color: #fff; }
+    .cal-color-7 { background: #6b21a8; color: #fff; }
 
     /* ── Empty / Loading ── */
     .state-box {
@@ -474,16 +474,16 @@
         font-size: 10px;
       }
       .cal-event {
-        font-size: 8px;
-        padding: 1px 2px;
-        height: 13px;
-        line-height: 13px;
+        font-size: 9px;
+        padding: 1px 3px;
+        height: 18px;
+        line-height: 18px;
         margin-bottom: 1px;
       }
-      .cal-event-spacer { height: 13px; }
-      .cal-event.start { margin-right: -2px; }
-      .cal-event.middle { margin-left: -2px; margin-right: -2px; }
-      .cal-event.end { margin-left: -2px; }
+      .cal-event-spacer { height: 18px; }
+      .cal-event.start { margin-right: -3px; padding-right: 3px; }
+      .cal-event.middle { margin-left: -3px; margin-right: -3px; padding-left: 3px; padding-right: 3px; }
+      .cal-event.end { margin-left: -3px; padding-left: 3px; }
       .calendar-legend { padding: 10px 12px; gap: 8px; }
       .calendar-legend-item { font-size: 11px; }
       .calendar-legend-dot { width: 10px; height: 10px; }
@@ -763,16 +763,11 @@
   }
 
   function showLoadingOverlay(show) {
-    // Remove any existing overlays
     document.querySelectorAll('.loading-overlay').forEach(el => el.remove());
     if (!show) return;
     const overlay = `<div class="loading-overlay"><div class="loading-spinner"></div></div>`;
-    // Add overlay to the active view
-    if (currentView === 'list') {
-      document.querySelector('.table-wrap').insertAdjacentHTML('beforeend', overlay);
-    } else {
-      document.getElementById('calendar-wrap').insertAdjacentHTML('beforeend', overlay);
-    }
+    document.querySelector('.table-wrap').insertAdjacentHTML('beforeend', overlay);
+    document.getElementById('calendar-wrap').insertAdjacentHTML('beforeend', overlay);
   }
 
   async function loadData() {
@@ -781,14 +776,12 @@
     const table   = document.getElementById('resa-table');
     const empty   = document.getElementById('empty-state');
 
-    const isFirstLoad = allData.length === 0;
-    if (isFirstLoad) {
+    showLoadingOverlay(true);
+    if (allData.length === 0) {
       loading.style.display = 'block';
-    } else {
-      showLoadingOverlay(true);
     }
     errBox.style.display  = 'none';
-    if (isFirstLoad) { table.style.display = 'none'; empty.style.display = 'none'; }
+    if (allData.length === 0) { table.style.display = 'none'; empty.style.display = 'none'; }
 
     try {
       const text = await fetchCSV();
@@ -961,7 +954,7 @@
         for (let s = 0; s <= maxSlot; s++) {
           if (slotMap[s]) {
             const e = slotMap[s];
-            const label = e.showName && e.nights ? `${e.nights}n` : '&nbsp;';
+            const label = e.showName && e.nights ? `🌙 ${e.nights}n` : '&nbsp;';
             let style = '';
             if (e.marginLeft) style += `margin-left:${e.marginLeft}%;`;
             if (e.marginRight) style += `margin-right:${e.marginRight}%;`;
@@ -982,7 +975,7 @@
 
     // Légende
     const legendEl = document.getElementById('calendar-legend');
-    const colorBgs = ['#dbeafe','#fce7f3','#d1fae5','#fef3c7','#e0e7ff','#ffe4e6','#ccfbf1','#f3e8ff'];
+    const colorBgs = ['#1e40af','#9d174d','#065f46','#92400e','#3730a3','#9f1239','#134e4a','#6b21a8'];
     legendEl.innerHTML = Object.entries(propertyColors).map(([name, ci]) =>
       `<div class="calendar-legend-item"><span class="calendar-legend-dot" style="background:${colorBgs[ci]}"></span>${name}</div>`
     ).join('');
