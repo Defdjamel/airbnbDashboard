@@ -12,6 +12,7 @@
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <script>
+    window.APP_VERSION = 'v1.1.0';
     window.ICAL_SOURCES = [
       {
         name: 'Logement Orange Centre',
@@ -642,6 +643,7 @@
 
 <footer>
   <span id="footer-count">—</span>
+  <span style="margin-left: 12px;">Version <span id="footer-version">—</span></span>
   <button class="refresh-btn" onclick="loadData()">↻ Actualiser</button>
 </footer>
 
@@ -651,6 +653,7 @@
   // ══════════════════════════════════════════
   //  La liste des liens iCal est définie en haut du fichier.
   // ══════════════════════════════════════════
+  const APP_VERSION = window.APP_VERSION || 'dev';
   const ICAL_SOURCES = Array.isArray(window.ICAL_SOURCES) ? window.ICAL_SOURCES : [];
   const DEFAULT_CHECKIN_HOUR = 15;
   const DEFAULT_CHECKOUT_HOUR = 12;
@@ -1362,6 +1365,7 @@
     document.querySelectorAll('.cal-popup-overlay').forEach(el => el.remove());
   }
 
+  document.getElementById('footer-version').textContent = APP_VERSION;
   updateConfigBanner();
   loadData();
   // Auto-refresh toutes les 5 minutes
