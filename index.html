@@ -373,9 +373,82 @@
       padding: 0 8px;
       white-space: nowrap;
       overflow: visible;
-      cursor: default;
+      cursor: pointer;
       z-index: 2;
       color: #fff;
+      transition: filter .15s;
+    }
+    .cal-bar:hover { filter: brightness(1.2); }
+
+    /* ── Popup réservation ── */
+    .cal-popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.35);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: popOverlayIn .2s ease;
+    }
+    @keyframes popOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+    .cal-popup {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.18);
+      max-width: 380px;
+      width: 90%;
+      padding: 28px 24px 24px;
+      position: relative;
+      animation: popIn .25s ease;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(.92) translateY(10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .cal-popup-close {
+      position: absolute;
+      top: 12px; right: 14px;
+      border: none; background: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--stone);
+      line-height: 1;
+    }
+    .cal-popup-close:hover { color: var(--ink); }
+    .cal-popup-title {
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 16px;
+      padding-right: 28px;
+    }
+    .cal-popup-color {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .cal-popup-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cal-popup-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--ink);
+    }
+    .cal-popup-row .label {
+      color: var(--stone);
+      min-width: 80px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
     }
 
     /* ── Calendar legend ── */
@@ -927,7 +1000,13 @@
       const coHour = parseHour(coStr);
       const name = r['Logement'] || r['logement'] || '—';
       const nights = r['Nuits'] || r['nuits'] || '';
-      return { name, ci, co, ciHour, coHour, nights, color: propertyColors[name] || 0 };
+      const statut = r['Statut'] || r['statut'] || '';
+      const menage = r['menage'] || r['Menage'] || '';
+      const ciFormatted = formatDate(ciStr);
+      const coFormatted = formatDate(coStr);
+      const ciTime = ciStr && ciStr.match(/(\d{1,2}:\d{2})/) ? ciStr.match(/(\d{1,2}:\d{2})/)[1] : '';
+      const coTime = coStr && coStr.match(/(\d{1,2}:\d{2})/) ? coStr.match(/(\d{1,2}:\d{2})/)[1] : '';
+      return { name, ci, co, ciHour, coHour, nights, statut, menage, ciFormatted, coFormatted, ciTime, coTime, color: propertyColors[name] || 0 };
     }).filter(r => r.ci && r.co);
 
     // Construire les dates de chaque cellule
@@ -1035,7 +1114,7 @@
         const showLabel = isCheckinDay || startCol === 0;
         const label = showLabel && resa.nights ? `🌙 ${resa.nights}n` : '';
 
-        html += `<div class="cal-bar cal-color-${resa.color}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%;top:${top}px;border-radius:${br}" title="${resa.name} — ${resa.nights} nuits">${label}</div>`;
+        html += `<div class="cal-bar cal-color-${resa.color}" data-ri="${ri}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%;top:${top}px;border-radius:${br}" title="${resa.name} — ${resa.nights} nuits">${label}</div>`;
       });
 
       html += '</div>';
@@ -1049,6 +1128,62 @@
     legendEl.innerHTML = Object.entries(propertyColors).map(([name, ci]) =>
       `<div class="calendar-legend-item"><span class="calendar-legend-dot" style="background:${colorBgs[ci]}"></span>${name}</div>`
     ).join('');
+
+    // Stocker les réservations pour le popup
+    window._calResas = reservations;
+
+    // Click handler sur les barres
+    grid.querySelectorAll('.cal-bar').forEach(bar => {
+      bar.addEventListener('click', e => {
+        e.stopPropagation();
+        const ri = parseInt(bar.dataset.ri);
+        const r = window._calResas[ri];
+        if (!r) return;
+        showResaPopup(r, colorBgs[r.color]);
+      });
+    });
+  }
+
+  function showResaPopup(r, bgColor) {
+    // Fermer un popup existant
+    closeResaPopup();
+
+    const menageLabel = r.menage === 'paid' ? 'Payé' : r.menage === 'todo' ? 'À faire' : r.menage || '—';
+    const menageIcon = r.menage === 'paid' ? '✅' : r.menage === 'todo' ? '⏳' : '—';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'cal-popup-overlay';
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeResaPopup(); });
+    overlay.innerHTML = `
+      <div class="cal-popup">
+        <button class="cal-popup-close" onclick="closeResaPopup()">&times;</button>
+        <div class="cal-popup-title">
+          <span class="cal-popup-color" style="background:${bgColor}"></span>${r.name}
+        </div>
+        <div class="cal-popup-rows">
+          <div class="cal-popup-row">
+            <span class="label">Check-in</span>
+            <span>↓ ${r.ciFormatted}${r.ciTime ? ' à ' + r.ciTime : ''}</span>
+          </div>
+          <div class="cal-popup-row">
+            <span class="label">Check-out</span>
+            <span>↑ ${r.coFormatted}${r.coTime ? ' à ' + r.coTime : ''}</span>
+          </div>
+          <div class="cal-popup-row">
+            <span class="label">Nuits</span>
+            <span>🌙 ${r.nights}</span>
+          </div>
+          <div class="cal-popup-row">
+            <span class="label">Statut</span>
+            <span>${r.statut || '—'}</span>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+
+  function closeResaPopup() {
+    document.querySelectorAll('.cal-popup-overlay').forEach(el => el.remove());
   }
 
   loadData();
