@@ -41,60 +41,18 @@
     /* ── Header ── */
     header {
       background: var(--ink);
-      padding: 48px 40px 40px;
-      position: relative;
-      overflow: hidden;
+      padding: 12px 40px;
     }
-    header::before {
-      content: '';
-      position: absolute;
-      top: -60px; right: -60px;
-      width: 280px; height: 280px;
-      background: radial-gradient(circle, rgba(255,56,92,.35) 0%, transparent 70%);
-      border-radius: 50%;
-    }
-    header::after {
-      content: '';
-      position: absolute;
-      bottom: -40px; left: 20%;
-      width: 180px; height: 180px;
-      background: radial-gradient(circle, rgba(255,56,92,.15) 0%, transparent 70%);
-      border-radius: 50%;
-    }
-
-    .header-inner { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
-
-    .logo-mark {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .logo-mark svg { width: 32px; height: 32px; }
-    .logo-mark span {
-      font-family: 'Fraunces', serif;
-      font-size: 15px;
-      color: rgba(255,255,255,.5);
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
+    .header-inner { max-width: 1100px; margin: 0 auto; }
 
     h1 {
       font-family: 'Fraunces', serif;
-      font-size: clamp(32px, 5vw, 52px);
+      font-size: 18px;
       font-weight: 300;
       color: #fff;
-      line-height: 1.15;
-      margin-bottom: 10px;
+      line-height: 1;
     }
     h1 em { font-style: italic; color: var(--coral); }
-
-    .header-sub {
-      font-size: 14px;
-      color: rgba(255,255,255,.45);
-      font-weight: 300;
-      letter-spacing: .03em;
-    }
 
     /* ── Stats bar ── */
     .stats-bar {
@@ -110,24 +68,27 @@
     }
     .stat {
       flex: 1;
-      padding: 20px 0;
+      padding: 10px 0;
       border-right: 1px solid #ede9e4;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
     .stat:last-child { border-right: none; }
     .stat-num {
       font-family: 'Fraunces', serif;
-      font-size: 28px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--coral);
       line-height: 1;
     }
     .stat-label {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--stone);
       text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-top: 4px;
+      letter-spacing: .04em;
     }
 
     /* ── Main ── */
@@ -565,7 +526,7 @@
     .refresh-btn:hover { border-color: var(--coral); color: var(--coral); }
 
     @media (max-width: 700px) {
-      header { padding: 32px 20px 28px; }
+      header { padding: 10px 16px; }
       .stats-inner, main { padding-left: 8px; padding-right: 8px; }
       th, td { padding: 12px 12px; }
       .stat-num { font-size: 22px; }
@@ -600,23 +561,13 @@
 
 <header>
   <div class="header-inner">
-    <div class="logo-mark">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 3C9.373 3 4 8.373 4 15c0 5.012 2.93 9.355 7.2 11.47C12.48 28.15 14.18 29 16 29s3.52-.85 4.8-2.53C25.07 24.355 28 20.012 28 15c0-6.627-5.373-12-12-12z" fill="var(--coral)" opacity=".15"/>
-        <path d="M16 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM10 20c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round"/>
-      </svg>
-      <span>Mes logements</span>
-    </div>
     <h1>Tableau de <em>réservations</em></h1>
-    <p class="header-sub" id="last-update">Chargement des données…</p>
   </div>
 </header>
 
 <div class="stats-bar">
   <div class="stats-inner">
     <div class="stat"><div class="stat-num" id="stat-total">—</div><div class="stat-label">Réservations</div></div>
-    <div class="stat"><div class="stat-num" id="stat-confirmed">—</div><div class="stat-label">Réservées</div></div>
-    <div class="stat"><div class="stat-num" id="stat-pending">—</div><div class="stat-label">En attente</div></div>
     <div class="stat"><div class="stat-num" id="stat-nights">—</div><div class="stat-label">Nuits totales</div></div>
   </div>
 </div>
@@ -827,13 +778,9 @@
   }
 
   function updateStats(data) {
-    const confirmed = data.filter(r => ['Confirmée','Réservé'].includes(r['Statut'] || r['statut'] || '')).length;
-    const pending   = data.filter(r => (r['Statut'] || r['statut'] || '') === 'En attente').length;
-    const nights    = data.reduce((s, r) => s + (parseInt(r['Nuits'] || r['nuits']) || 0), 0);
-    document.getElementById('stat-total').textContent     = data.length;
-    document.getElementById('stat-confirmed').textContent = confirmed;
-    document.getElementById('stat-pending').textContent   = pending;
-    document.getElementById('stat-nights').textContent    = nights;
+    const nights = data.reduce((s, r) => s + (parseInt(r['Nuits'] || r['nuits']) || 0), 0);
+    document.getElementById('stat-total').textContent  = data.length;
+    document.getElementById('stat-nights').textContent = nights;
   }
 
   async function fetchCSV() {
@@ -896,8 +843,6 @@
       showLoadingOverlay(false);
       applyFilter();
 
-      const now = new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
-      document.getElementById('last-update').textContent = `Dernière mise à jour : ${now}`;
     } catch (e) {
       loading.style.display = 'none';
       showLoadingOverlay(false);
