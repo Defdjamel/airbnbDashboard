@@ -1,0 +1,44 @@
+name: Rafraîchir les calendriers
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # toutes les 30 minutes
+  workflow_dispatch:          # bouton « Run workflow » dans l'onglet Actions
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'scripts/build-ical-data.mjs'
+      - '.github/workflows/refresh-ical.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-ical
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Récupérer les flux iCal Airbnb
+        run: node scripts/build-ical-data.mjs
+
+      - name: Publier si les calendriers ont changé
+        run: |
+          if git diff --quiet -- data; then
+            echo "Aucun changement."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "Mise à jour des calendriers ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+          git push

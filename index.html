@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <script>
-    window.APP_VERSION = 'v1.1.0';
+    window.APP_VERSION = 'v1.2.0';
     window.ICAL_SOURCES = [
       {
         name: 'Logement Orange Centre',
@@ -964,6 +964,11 @@
     document.getElementById('stat-nights').textContent = nights;
   }
 
+  function assertICal(text) {
+    if (!text || !text.includes('BEGIN:VCALENDAR')) throw new Error('reponse non-iCal');
+    return text;
+  }
+
   async function fetchTextWithTimeout(url, timeoutMs) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -976,27 +981,45 @@
     }
   }
 
+  // Chemin du fichier deverse par la GitHub Action (meme origine, pas de CORS).
+  function localFeedPath(url) {
+    const match = url.match(/\/ical\/(\d+)\.ics/);
+    return match ? `data/${match[1]}.ics` : null;
+  }
+
   async function fetchRemoteText(url) {
     const bustCache = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
     const isFileProtocol = window.location.protocol === 'file:';
 
+    // 1) Copie locale rafraichie toutes les 30 min par GitHub Actions.
+    const localPath = localFeedPath(url);
+    if (localPath) {
+      try {
+        return assertICal(await fetchTextWithTimeout(`${localPath}?_t=${Date.now()}`, 6000));
+      } catch (_) { /* on bascule sur le direct puis les proxies */ }
+    }
+
+    // 2) Appel direct (fonctionne hors navigateur / si Airbnb autorise l'origine),
+    //    puis proxies CORS publics en dernier recours : ils tombent regulierement.
     const candidates = [];
     if (!isFileProtocol) {
-      candidates.push({ url: bustCache, timeoutMs: 3000 });
+      candidates.push({ url: bustCache, timeoutMs: 6000 });
     }
 
     const proxies = [
-      url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+      url => 'https://cors.eu.org/' + url,
       url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
       url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
     ];
     proxies.forEach(makeUrl => {
-      candidates.push({ url: makeUrl(bustCache), timeoutMs: 4500 });
+      candidates.push({ url: makeUrl(bustCache), timeoutMs: 9000 });
     });
 
     try {
       return await Promise.any(
-        candidates.map(candidate => fetchTextWithTimeout(candidate.url, candidate.timeoutMs))
+        candidates.map(async candidate =>
+          assertICal(await fetchTextWithTimeout(candidate.url, candidate.timeoutMs))
+        )
       );
     } catch (_) {
       throw new Error('Impossible de joindre le flux iCal');

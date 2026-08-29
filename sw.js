@@ -1,5 +1,5 @@
-const CACHE_NAME = 'resa-v2';
-const PRECACHE = ['/', '/index.html'];
+const CACHE_NAME = 'resa-v3';
+const PRECACHE = ['./', './index.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -23,7 +23,7 @@ self.addEventListener('fetch', e => {
     e.request.url.includes('.ics') ||
     e.request.url.includes('output=csv') ||
     e.request.url.includes('allorigins') ||
-    e.request.url.includes('corsproxy') ||
+    e.request.url.includes('cors.eu.org') ||
     e.request.url.includes('codetabs')
   ) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
